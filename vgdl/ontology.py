@@ -1,5 +1,5 @@
 '''
-Video game description language -- ontology of concepts.
+Video game lling to description language -- ontology of concepts.
 
 @author: Tom Schaul
 '''
@@ -322,7 +322,7 @@ class AStarChaser(RandomNPC):
     drawpath = None
     walkableTiles = None
     neighborNodes = None
-    
+
     def _movesToward(self, game, target):
         """ Find the canonical direction(s) which move toward
             the target. """
@@ -341,18 +341,18 @@ class AStarChaser(RandomNPC):
     def _draw(self, game):
         """ With a triangle that shows the orientation. """
         RandomNPC._draw(self, game)
-        
+
         if self.walkableTiles:
             col = pygame.Color(0, 0, 255, 100)
             for sprite in self.walkableTiles:
                 pygame.draw.rect(game.screen, col, sprite.rect)
-        
+
         if self.neighborNodes:
             #logToFile("len(neighborNodes)=%s" %len(self.neighborNodes))
             col = pygame.Color(0, 255, 255, 80)
             for node in self.neighborNodes:
                 pygame.draw.rect(game.screen, col, node.sprite.rect)
-    
+
         if self.drawpath:
             col = pygame.Color(0, 255, 0, 120)
             for sprite in self.drawpath[1:-1]:
@@ -363,30 +363,30 @@ class AStarChaser(RandomNPC):
             Sets the variables required for debug drawing of the paths
             resulting from the A-Star search.
             '''
-        
+
         path_sprites = [node.sprite for node in path]
-        
+
         self.walkableTiles = world.get_walkable_tiles()
         self.neighborNodes = world.neighbor_nodes_of_sprite(self)
         self.drawpath = path_sprites
-    
+
     def update(self, game):
         VGDLSprite.update(self, game)
-        
+
         world = AStarWorld(game)
         path = world.getMoveFor(self)
-        
+
         # Uncomment below to draw debug paths.
         # self._setDebugVariables(world,path)
-        
+
         if len(path)>1:
             move = path[1]
-            
+
             nextX, nextY = world.get_sprite_tile_position(move.sprite)
             nowX, nowY = world.get_sprite_tile_position(self)
-            
+
             movement = None
-            
+
             if nowX == nextX:
                 if nextY > nowY:
                     #logToFile('DOWN')
@@ -401,7 +401,7 @@ class AStarChaser(RandomNPC):
                 else:
                     #logToFile('LEFT')
                     movement = LEFT
-                    
+
         self.physics.activeMovement(self, movement)
 
 

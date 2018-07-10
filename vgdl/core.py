@@ -15,107 +15,6 @@ import sys
 
 VGDL_GLOBAL_IMG_LIB = {}
 
-class VGDLParser:
-    """ Parses a string into a Game object. """
-    verbose = False
-
-    def parseGame(self, tree, **kwargs):
-        """ Accepts either a string, or a tree. """
-        if not isinstance(tree, Node):
-            tree = indentTreeParser(tree).children[0]
-        sclass, args = self._parseArgs(tree.content)
-        args.update(kwargs)
-        self.game = sclass(**args)
-        for c in tree.children:
-            if c.content == "SpriteSet":
-                self.parseSprites(c.children)
-            if c.content == "InteractionSet":
-                self.parseInteractions(c.children)
-            if c.content == "LevelMapping":
-                self.parseMappings(c.children)
-            if c.content == "TerminationSet":
-                self.parseTerminations(c.children)
-
-        return self.game
-
-    def _eval(self, estr):
-        """
-        Whatever is visible in the global namespace (after importing the ontologies)
-        can be used in the VGDL, and is evaluated.
-        """
-        #import gym_vgdl.vgdl.ontology
-        #from .ontology import * #@UnusedWildImport
-        return eval(estr)
-
-    def parseInteractions(self, inodes):
-        for inode in inodes:
-            if ">" in inode.content:
-                pair, edef = [x.strip() for x in inode.content.split(">")]
-                eclass, args = self._parseArgs(edef)
-                objs = [x.strip() for x in pair.split(" ") if len(x)>0]
-                for obj in objs[1:]:
-                    self.game.collision_eff.append(tuple([objs[0], obj, eclass, args]))
-                if self.verbose:
-                    print("Collision", pair, "has effect:", edef)
-
-    def parseTerminations(self, tnodes):
-        for tn in tnodes:
-            sclass, args = self._parseArgs(tn.content)
-            if self.verbose:
-                print("Adding:", sclass, args)
-            self.game.terminations.append(sclass(**args))
-
-    def parseSprites(self, snodes, parentclass=None, parentargs={}, parenttypes=[]):
-        for sn in snodes:
-            assert ">" in sn.content
-            key, sdef = [x.strip() for x in sn.content.split(">")]
-            sclass, args = self._parseArgs(sdef, parentclass, parentargs.copy())
-            stypes = parenttypes+[key]
-            if 'singleton' in args:
-                if args['singleton']==True:
-                    self.game.singletons.append(key)
-                args = args.copy()
-                del args['singleton']
-
-            if len(sn.children) == 0:
-                if self.verbose:
-                    print("Defining:", key, sclass, args, stypes)
-                self.game.sprite_constr[key] = (sclass, args, stypes)
-                if key in self.game.sprite_order:
-                    # last one counts
-                    self.game.sprite_order.remove(key)
-                self.game.sprite_order.append(key)
-            else:
-                self.parseSprites(sn.children, sclass, args, stypes)
-
-    def parseMappings(self, mnodes):
-        for mn in mnodes:
-            c, val = [x.strip() for x in mn.content.split(">")]
-            assert len(c) == 1, "Only single character mappings allowed."
-            # a char can map to multiple sprites
-            keys = [x.strip() for x in val.split(" ") if len(x)>0]
-            if self.verbose:
-                print("Mapping", c, keys)
-            self.game.char_mapping[c] = keys
-
-    def _parseArgs(self, s,  sclass=None, args=None):
-        if not args:
-            args = {}
-        sparts = [x.strip() for x in s.split(" ") if len(x) > 0]
-        if len(sparts) == 0:
-            return sclass, args
-        if not '=' in sparts[0]:
-            sclass = self._eval(sparts[0])
-            sparts = sparts[1:]
-        for sp in sparts:
-            k, val = sp.split("=")
-            try:
-                args[k] = self._eval(val)
-            except:
-                args[k] = val
-        return sclass, args
-
-
 class BasicGame:
     """
     Heavily integrated with pygame for both game mechanics
@@ -184,7 +83,7 @@ class BasicGame:
         assert min(lengths)==max(lengths), "Inconsistent line lengths."
         self.width = lengths[0]
         self.height = len(lines)
-        assert self.width > 1 and self.height > 1, "Level too small."
+        # assert self.width > 1 and self.height > 1, "Level too small."
 
         self.screensize = (self.width*self.block_size, self.height*self.block_size)
 
@@ -217,7 +116,7 @@ class BasicGame:
         self.sprite_order.append('avatar')
 
 
-    def initScreen(self, headless, zoom=1):
+    def initScreen(self, headless, zoom=1, title=None):
         self.headless = headless
         self.zoom = zoom
         self.display_size = (self.screensize[0] * zoom, self.screensize[1] * zoom)
@@ -235,6 +134,8 @@ class BasicGame:
             self.screen.fill((0,0,0))
             self.background = self.screen.copy()
             self.display = pygame.display.set_mode(self.display_size, pygame.RESIZABLE, 32)
+            if title:
+                pygame.display.set_caption(title)
             # TODO there will probably be need for a separate background surface
             # once dirty optimisation is back in
 
@@ -245,6 +146,9 @@ class BasicGame:
         self.ended = False
         self.sprite_groups = defaultdict(list)
         self.num_sprites = 0
+        # TODO should use kill_list more consistently
+        # Is there a case where it makes sense to have a sprite in kill_list
+        # without having cleared it right away?
         self.kill_list=[]
         #self.random_generator = random.Random(self.seed)
 
@@ -320,6 +224,8 @@ class BasicGame:
         if key in self.sprite_groups:
             return [s for s in self.sprite_groups[key] if s not in self.kill_list]
         else:
+            # TODO I don't actually know where this would be used
+            # This gets all sprites of a certain type
             return [s for s in self if key in s.stypes and s not in self.kill_list]
 
     def getAvatars(self):
@@ -362,6 +268,24 @@ class BasicGame:
                          'scale_image',
                          'randomtiling',
                          ]
+
+
+    def __getstate__(self):
+        assert len(self.kill_list) == 0
+        objects = {}
+        for sprite_type, sprites in self.sprite_groups.items():
+            objects[sprite_type] = [sprite.__getstate__() for sprite in sprites]
+
+        state = {
+            'score': self.score,
+            'ended': self.ended,
+            'objects': objects,
+        }
+        return state
+
+
+    def __setstate__(self):
+        pass
 
 
     def getBoundingBoxes(self):
@@ -534,7 +458,7 @@ class BasicGame:
         # Update Keypresses
         # Agents are updated during the update routine in their ontology files, this demends on BasicGame.keystate
         self.keystate = [0]* len(pygame.key.get_pressed())
-        self.keystate[action] = True
+        self.keystate[action] = 1
 
         # Iterate Over Termination Criteria
         for t in self.terminations:
@@ -603,8 +527,10 @@ class VGDLSprite:
         # TODO: Load images into a central dictionary to save loading a separate image for each object
         if self.img:
             if VGDL_GLOBAL_IMG_LIB.get(self.img) is None:
-                pth = 'sprites/' + self.img + '.png'
-                img = pygame.image.load(os.path.join(os.path.dirname(__file__), pth))
+                import pkg_resources
+                sprites_path = pkg_resources.resource_filename('vgdl', 'sprites')
+                pth = os.path.join(sprites_path, self.img + '.png')
+                img = pygame.image.load(pth)
                 VGDL_GLOBAL_IMG_LIB[self.img] = img
             self.image = VGDL_GLOBAL_IMG_LIB[self.img]
             self.scale_image = pygame.transform.scale(self.image, (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
@@ -717,6 +643,3 @@ class Termination:
             return True, False
         else:
             return False, None
-
-# This needs to go at the bottom so that classes in core are already loaded
-from .ontology import *
