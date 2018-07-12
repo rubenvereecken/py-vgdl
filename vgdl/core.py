@@ -13,8 +13,15 @@ import math
 import os
 import sys
 import logging
+from typing import NewType, Dict, List
 
 VGDL_GLOBAL_IMG_LIB = {}
+
+class SpriteRegistry:
+    def __init__(self):
+        pass
+
+Action = NewType('Action', int)
 
 class BasicGame:
     """
@@ -186,6 +193,10 @@ class BasicGame:
 
 
     def _createSprite(self, keys, pos):
+        """
+        Creates multiple sprites corresponding to `keys` at position
+        """
+        if not isinstance(keys, list): keys = [keys]
         res = []
         for key in keys:
             if self.num_sprites > self.MAX_SPRITES:
@@ -245,39 +256,6 @@ class BasicGame:
         return res
 
 
-    # TODO: move or remove this, it's really part of ontology
-    ignoredattributes = ['stypes',
-                         'name',
-                         'lastmove',
-                         'color',
-                         'lastrect',
-                         'resources',
-                         'physicstype',
-                         'physics',
-                         'rect',
-                         'alternate_keys',
-                         'res_type',
-                         'stype',
-                         'ammo',
-                         'draw_arrow',
-                         'shrink_factor',
-                         'prob',
-                         'is_stochastic',
-                         'cooldown',
-                         'total',
-                         'is_static',
-                         'noiseLevel',
-                         'angle_diff',
-                         'only_active',
-                         'airsteering',
-                         'strength',
-                         'img',
-                         'image',
-                         'scale_image',
-                         'randomtiling',
-                         ]
-
-
     def __getstate__(self):
         assert len(self.kill_list) == 0
         objects = {}
@@ -296,11 +274,44 @@ class BasicGame:
         pass
 
 
-    def getGameState(self, include_random_state=False):
-        pass
+    def getGameState(self, include_random_state=False) -> dict:
+        assert len(self.kill_list) == 0
+        sprite_states = {}
 
-    def setGameState(self):
-        pass
+        def _sprite_state(sprite):
+            return dict(
+                position=(sprite.rect.left, sprite.rect.top),
+                state=sprite.getGameState()
+            )
+
+        for sprite_type, sprites in self.sprite_groups.items():
+            sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites]
+
+        state = {
+            'score': self.score,
+            'time': self.time,
+            'ended': self.ended,
+            'sprites': sprite_states,
+        }
+        return state
+
+
+    def setGameState(self, state: dict):
+        """
+        Rebuilds all sprites and resets game state
+        TODO: Keep a sprite registry and even keep dead sprites around,
+        just overwrite their state when setting game state.
+        This has the advantage of keeping the Python objects intact.
+        """
+        for sprite_type, sprite_states in state['sprites'].items():
+            # Discard all the other sprites
+            self.sprite_groups[sprite_type] = []
+
+            for sprite_state in sprite_states:
+                sprites = self._createSprite(sprite_type, sprite_state['position'])
+                sprite = sprites[0]; assert len(sprites) == 1
+                sprite.setGameState(sprite_state['state'])
+
 
     def getBoundingBoxes(self):
         boxes = []
@@ -454,11 +465,13 @@ class BasicGame:
                             effect(s1, s2, self, **kwargs)
 
 
-    def getPossibleActions(self):
+    def getPossibleActions(self) -> Dict[str, Action]:
         return self.getAvatars()[0].declare_possible_actions()
 
 
-    def tick(self, action, render = True):
+    def tick(self, action: Action):
+        assert action in self.getPossibleActions().values(), \
+          'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
 
         # This is required for game-updates to work properly
         self.time += 1
@@ -500,20 +513,22 @@ class BasicGame:
 
 class VGDLSprite:
     """ Base class for all sprite types. """
-    name = None
-    COLOR_DISC = [20,80,140,200]
-    dirtyrects = []
+    name          = None
+    COLOR_DISC    = [20,80,140,200]
+    dirtyrects    = []
 
-    is_static= False
-    only_active =False
-    is_avatar= False
+    is_static     = False
+    only_active   = False
+    is_avatar     = False
     is_stochastic = False
-    color    = None
-    cooldown = 0 # pause ticks in-between two moves
-    speed    = None
-    mass     = 1
-    physicstype=None
-    shrinkfactor=0
+    color         = None
+    cooldown      = 0 # pause ticks in-between two moves
+    speed         = None
+    mass          = 1
+    physicstype   = None
+    shrinkfactor  = 0
+
+    state_attributes = ['resources', 'speed']
 
     def __init__(self, pos, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
         from .ontology import GridPhysics
@@ -549,6 +564,20 @@ class VGDLSprite:
             self.image = VGDL_GLOBAL_IMG_LIB[self.img]
             self.scale_image = pygame.transform.scale(self.image, (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
 
+    def getGameState(self) -> dict:
+        state = { attr_name: getattr(self, attr_name) for attr_name in self.state_attributes \
+                 if hasattr(self, attr_name)}
+        # The alternative is to have each class define _just_ its state attrs,
+        # flatten(c.state_attributes for c in inspect.getmro(self.__class__) \
+        #   if c.hasattr('state_attributes'))
+        return state
+
+    def setGameState(self, state: Dict):
+        for k, v in state.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                logging.warning('Unknown sprite state attribute `%s`', k)
 
     def update(self, game):
         """ The main place where subclasses differ. """
@@ -640,6 +669,8 @@ class Resource(VGDLSprite):
     value=1
     limit=2
     res_type = None
+
+    state_attributes = VGDLSprite.state_attributes + ['limit']
 
     @property
     def resourceType(self):

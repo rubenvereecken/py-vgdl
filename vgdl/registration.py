@@ -17,7 +17,7 @@ class OntologyRegistry:
 
 
     def register_class(self, cls):
-        return self.register(cls.__class__.__name__, cls)
+        return self.register(cls.__name__, cls)
 
 
     def request(self, key):

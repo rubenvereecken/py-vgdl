@@ -6,7 +6,11 @@ Video game lling to description language -- ontology of concepts.
 
 from math import sqrt
 import pygame
+from typing import List, Dict
+
 from .tools import triPoints, unitVector, vectNorm, oncePerStep
+from .core import Action
+
 
 # ---------------------------------------------------------------------
 #     Constants
@@ -191,6 +195,8 @@ class OrientedSprite(VGDLSprite):
     """ A sprite that maintains the current orientation. """
     draw_arrow = False
     orientation = RIGHT
+
+    state_attributes = VGDLSprite.state_attributes + ['orientation']
 
     def _draw(self, game):
         """ With a triangle that shows the orientation. """
@@ -418,7 +424,7 @@ class MovingAvatar(VGDLSprite, Avatar):
     alternate_keys=False
 
 
-    def declare_possible_actions(self):
+    def declare_possible_actions(self) -> Dict[str, Action]:
         from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
         actions = {}
         actions["UP"] = K_UP
