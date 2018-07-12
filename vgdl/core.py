@@ -13,7 +13,7 @@ import math
 import os
 import sys
 import logging
-from typing import NewType, Dict, List
+from typing import NewType, Optional, Union, Dict, List, Tuple
 
 VGDL_GLOBAL_IMG_LIB: Dict[str, str] = {}
 
@@ -22,6 +22,8 @@ class SpriteRegistry:
         pass
 
 Action = NewType('Action', int)
+Color = NewType('Color', Tuple[int, int, int])
+Direction = NewType('Direction', Tuple[int, int])
 
 class BasicGame:
     """
@@ -520,12 +522,12 @@ class VGDLSprite:
     only_active   = False
     is_avatar     = False
     is_stochastic = False
-    color         = None
+    color         = None # type: Optional[Color]
     cooldown      = 0 # pause ticks in-between two moves
-    speed         = None
+    speed         = None # type: Optional[int]
     mass          = 1
-    physicstype   = None
-    shrinkfactor  = 0
+    physicstype   = None # type: type
+    shrinkfactor  = 0.
 
     state_attributes = ['resources', 'speed']
 

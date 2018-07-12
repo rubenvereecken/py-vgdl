@@ -6,45 +6,48 @@ Video game lling to description language -- ontology of concepts.
 
 from math import sqrt
 import pygame
-from typing import List, Dict
+from typing import NewType, Optional, Union, Dict, List, Tuple
 
 from .tools import triPoints, unitVector, vectNorm, oncePerStep
-from .core import Action
+from .core import Action, Color, Direction
 
 
 # ---------------------------------------------------------------------
 #     Constants
 # ---------------------------------------------------------------------
-GREEN = (0, 200, 0)
-BLUE = (0, 0, 200)
-RED = (200, 0, 0)
-GRAY = (90, 90, 90)
-WHITE = (250, 250, 250)
-BROWN = (140, 120, 100)
-BLACK = (0, 0, 0)
-ORANGE = (250, 160, 0)
-YELLOW = (250, 250, 0)
-PINK = (250, 200, 200)
-GOLD = (250, 212, 0)
-LIGHTRED = (250, 50, 50)
-LIGHTORANGE = (250, 200, 100)
-LIGHTBLUE = (50, 100, 250)
-LIGHTGREEN = (50, 250, 50)
-LIGHTGRAY = (150, 150, 150)
-DARKGRAY = (30, 30, 30)
-DARKBLUE = (20, 20, 100)
+GREEN = Color((0, 200, 0))
+BLUE = Color((0, 0, 200))
+RED = Color((200, 0, 0))
+GRAY = Color((90, 90, 90))
+WHITE = Color((250, 250, 250))
+BROWN = Color((140, 120, 100))
+BLACK = Color((0, 0, 0))
+ORANGE = Color((250, 160, 0))
+YELLOW = Color((250, 250, 0))
+PINK = Color((250, 200, 200))
+GOLD = Color((250, 212, 0))
+LIGHTRED = Color((250, 50, 50))
+LIGHTORANGE = Color((250, 200, 100))
+LIGHTBLUE = Color((50, 100, 250))
+LIGHTGREEN = Color((50, 250, 50))
+LIGHTGRAY = Color((150, 150, 150))
+DARKGRAY = Color((30, 30, 30))
+DARKBLUE = Color((20, 20, 100))
 
-UP = (0, -1)
-DOWN = (0, 1)
-LEFT = (-1, 0)
-RIGHT = (1, 0)
+UP = Direction((0, -1))
+DOWN = Direction((0, 1))
+LEFT = Direction((-1, 0))
+RIGHT = Direction((1, 0))
 
 BASEDIRS = [UP, LEFT, DOWN, RIGHT]
 
 # ---------------------------------------------------------------------
 #     Types of physics
 # ---------------------------------------------------------------------
-class GridPhysics():
+class Physics:
+    pass
+
+class GridPhysics(Physics):
     """ Define actions and key-mappings for grid-world dynamics. """
 
     def passiveMovement(self, sprite):
@@ -161,7 +164,6 @@ class SpawnPoint(SpriteProducer):
     prob = None
     total = None
     color = BLACK
-    cooldown = None
     is_static = True
     def __init__(self, cooldown=1, prob=1, total=None, **kwargs):
         SpriteProducer.__init__(self, **kwargs)
@@ -419,7 +421,7 @@ from .core import Avatar
 class MovingAvatar(VGDLSprite, Avatar):
     """ Default avatar, moves in the 4 cardinal directions. """
     color = WHITE
-    speed = 1
+    speed = 1 # type: Optional[int]
     is_avatar = True
     alternate_keys=False
 
@@ -560,7 +562,7 @@ class RotatingFlippingAvatar(RotatingAvatar):
     Optionally, a noise level can be specified
     """
 
-    noiseLevel = 0
+    noiseLevel = 0.
 
     def update(self, game):
         actions = self._readMultiActions(game)
@@ -632,8 +634,9 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
 
 class AimedAvatar(ShootAvatar):
     """ Can change the direction of firing, but not move. """
-    speed=0
+    speed = 0 # type: Optional[int]
     angle_diff=0.05
+
     def update(self, game):
         VGDLSprite.update(self, game)
         self._aim(game)
