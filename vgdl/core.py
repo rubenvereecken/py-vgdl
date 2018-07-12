@@ -12,6 +12,7 @@ from .tools import roundedPoints
 import math
 import os
 import sys
+import logging
 
 VGDL_GLOBAL_IMG_LIB = {}
 
@@ -40,6 +41,8 @@ class BasicGame:
     def __init__(self, **kwargs):
         from .ontology import Immovable, DARKGRAY, MovingAvatar, GOLD
         for name, value in kwargs.items():
+            if name in ['notable_resources', 'notable_sprites']:
+                logging.warning('DEPRECATED BasicGame arg will be ignored: %s=%s', name, value)
             if hasattr(self, name):
                 self.__dict__[name] = value
             else:
@@ -63,7 +66,7 @@ class BasicGame:
         self.char_mapping = {}
         # termination criteria
         self.terminations = [Termination()]
-        # resource properties
+        # resource properties, used to draw resource bar on the avatar sprite
         self.resources_limits = defaultdict(lambda: 2)
         self.resources_colors = defaultdict(lambda: GOLD)
 
@@ -88,6 +91,7 @@ class BasicGame:
         self.screensize = (self.width*self.block_size, self.height*self.block_size)
 
         # set up resources
+        self.notable_resources = []
         for res_type, (sclass, args, _) in self.sprite_constr.items():
             if issubclass(sclass, Resource):
                 if 'res_type' in args:
@@ -96,6 +100,7 @@ class BasicGame:
                     self.resources_colors[res_type] = args['color']
                 if 'limit' in args:
                     self.resources_limits[res_type] = args['limit']
+                self.notable_resources.append(res_type)
 
         # create sprites
         for row, l in enumerate(lines):
@@ -145,7 +150,6 @@ class BasicGame:
         self.time = 0
         self.ended = False
         self.sprite_groups = defaultdict(list)
-        self.num_sprites = 0
         # TODO should use kill_list more consistently
         # Is there a case where it makes sense to have a sprite in kill_list
         # without having cleared it right away?
@@ -176,6 +180,11 @@ class BasicGame:
             self._createSprite(['avatar'], self.random_generator.choice(self.emptyBlocks()))
 
 
+    @property
+    def num_sprites(self):
+        return sum(len(sprite_list) for sprite_list in self.sprite_groups.values())
+
+
     def _createSprite(self, keys, pos):
         res = []
         for key in keys:
@@ -196,7 +205,6 @@ class BasicGame:
                 name=key, random_generator=self.random_generator, **args)
             s.stypes = stypes
             self.sprite_groups[key].append(s)
-            self.num_sprites += 1
             if s.is_stochastic:
                 self.is_stochastic = True
             res.append(s)
@@ -287,6 +295,12 @@ class BasicGame:
     def __setstate__(self):
         pass
 
+
+    def getGameState(self, include_random_state=False):
+        pass
+
+    def setGameState(self):
+        pass
 
     def getBoundingBoxes(self):
         boxes = []
