@@ -15,7 +15,7 @@ import sys
 import logging
 from typing import NewType, Dict, List
 
-VGDL_GLOBAL_IMG_LIB = {}
+VGDL_GLOBAL_IMG_LIB: Dict[str, str] = {}
 
 class SpriteRegistry:
     def __init__(self):
@@ -42,8 +42,8 @@ class BasicGame:
     render_sprites = True
     load_save_enabled = False
 
-    notable_sprites = []
-    notable_resources = []
+    notable_sprites: List[str] = []
+    notable_resources: List[str] = []
 
     def __init__(self, **kwargs):
         from .ontology import Immovable, DARKGRAY, MovingAvatar, GOLD
@@ -515,7 +515,6 @@ class VGDLSprite:
     """ Base class for all sprite types. """
     name          = None
     COLOR_DISC    = [20,80,140,200]
-    dirtyrects    = []
 
     is_static     = False
     only_active   = False
@@ -626,7 +625,6 @@ class VGDLSprite:
         if self.resources:
             self._drawResources(game, screen, shrunk)
         #r = self.rect.copy()
-        #VGDLSprite.dirtyrects.append(r)
 
     def _drawResources(self, game, screen, rect):
         """ Draw progress bars on the bottom third of the sprite """
@@ -647,10 +645,8 @@ class VGDLSprite:
     def _clear(self, screen, background, double=True):
         pass
         r = screen.blit(background, self.rect, self.rect)
-        #VGDLSprite.dirtyrects.append(r)
         if double:
             r = screen.blit(background, self.lastrect, self.lastrect)
-        #    VGDLSprite.dirtyrects.append(r)
 
     def __repr__(self):
         return self.name+" at (%s,%s)"%(self.rect.left, self.rect.top)
