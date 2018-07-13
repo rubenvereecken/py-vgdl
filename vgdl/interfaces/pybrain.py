@@ -27,12 +27,13 @@ class VGDLPybrainEnvironment(Environment):
         self.state_handler = state_handler
 
         self.action_set: List[Action] = list(game.getPossibleActions().values())
-        self.init_state = state_handler.get_state()
+        # self.init_state = state_handler.get_state()
         self.init_game_state = game.getGameState()
+        self.init_observation = state_handler.get_observation()
 
         # Pybrain Environment attributes
         self.numActions = len(self.action_set)
-        self.outdim = len(self.init_state)
+        self.outdim = len(self.init_observation)
 
         self.reset(init=True)
         print(self.action_set)
@@ -43,14 +44,15 @@ class VGDLPybrainEnvironment(Environment):
         self.game.initScreen(self.headless)
 
         if not init:
-            self.game.setState(self.init_state)
+            # self.game.setState(self.init_state)
+            self.game.setGameState(self.init_game_state)
 
         # TODO test this
         self.game.randomizeAvatar()
 
 
     def getSensors(self):
-        return self.state_handler.get_state()
+        return self.state_handler.get_observation()
 
 
     def performAction(self, action: Action):

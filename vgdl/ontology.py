@@ -426,7 +426,13 @@ class MovingAvatar(VGDLSprite, Avatar):
     alternate_keys=False
 
 
-    def declare_possible_actions(self) -> Dict[str, Action]:
+    @classmethod
+    def declare_possible_actions(cls) -> Dict[str, Action]:
+        """
+        Assume this does not change throughout the game. That is, we commit
+        to the semantics that all actions are always possible, no matter
+        whether they will actually have an effect or not.
+        """
         from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
         actions = {}
         actions["UP"] = K_UP
@@ -468,7 +474,8 @@ class MovingAvatar(VGDLSprite, Avatar):
 class HorizontalAvatar(MovingAvatar):
     """ Only horizontal moves.  """
 
-    def declare_possible_actions(self):
+    @classmethod
+    def declare_possible_actions(cls):
         from pygame.locals import K_LEFT, K_RIGHT
         actions = {}
         actions["LEFT"] = K_LEFT
@@ -486,7 +493,8 @@ class HorizontalAvatar(MovingAvatar):
 class VerticalAvatar(MovingAvatar):
     """ Only vertical moves.  """
 
-    def declare_possible_actions(self):
+    @classmethod
+    def declare_possible_actions(cls):
         from pygame.locals import K_UP, K_DOWN
         actions = {}
         actions["UP"] = K_UP
@@ -504,9 +512,10 @@ class FlakAvatar(HorizontalAvatar, SpriteProducer):
     """ Hitting the space button creates a sprite of the
     specified type at its location. """
 
-    def declare_possible_actions(self):
+    @classmethod
+    def declare_possible_actions(cls):
         from pygame.locals import K_SPACE
-        actions = HorizontalAvatar.declare_possible_actions(self)
+        actions = super()
         actions["SPACE"] = K_SPACE
         return actions
 
@@ -595,9 +604,10 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
     """ Produces a sprite in front of it (e.g., Link using his sword). """
     ammo=None
 
-    def declare_possible_actions(self):
+    @classmethod
+    def declare_possible_actions(cls):
         from pygame.locals import K_SPACE
-        actions = MovingAvatar.declare_possible_actions(self)
+        actions = super()
         actions["SPACE"] = K_SPACE
         return actions
 

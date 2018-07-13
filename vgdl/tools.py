@@ -8,6 +8,24 @@ from math import sqrt
 import pygame
 
 
+def freeze_dict(d):
+    """ This assumes d is immutable from here on """
+    if not isinstance(d, dict): return d
+    import copy
+    d = copy.deepcopy(d)
+
+    for k, v in d.items():
+        if isinstance(v, dict):
+            d[k] = freeze_dict(v)
+        elif isinstance(v, list):
+            v = tuple(freeze_dict(el) for el in v)
+            d[k] = v
+        else:
+            d[k] = v
+
+    return tuple(d.items())
+
+
 def logToFile(string):
     f = open("log.txt", "a")
     f.write(string +"\n")

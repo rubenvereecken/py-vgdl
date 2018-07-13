@@ -1,11 +1,14 @@
 import numpy as np
 from pybrain.utilities import flood
 
+from typing import Any, List, Optional
+
+import vgdl
 import vgdl.interfaces
 from vgdl.interfaces.pybrain import VGDLPybrainEnvironment
 
-from typing import Any, List
-State = Any
+from vgdl.core import GameState
+from vgdl.state import Observation
 
 
 class MDPConverter:
@@ -17,8 +20,9 @@ class MDPConverter:
         self.env = task.env
         self.game = task.env.game
 
+        self.states: List[GameState] = []
         # [(s, a, s')]
-        self.transitions: List[State, int, State] = []
+        self.transitions: List[GameState, int, GameState] = []
         # S' -> R
         self.rewards = {}
 
@@ -27,7 +31,7 @@ class MDPConverter:
 
     def convert_task_to_mdp(self):
         # Finds all states, all the while logging transitions and rewards
-        self.states = sorted(flood(self.get_neighbors, None, [self.env.init_state]))
+        self.states = sorted(flood(self.get_neighbors, None, [self.env.init_game_state]))
         state_dict = { state: state_i for state_i, state in enumerate(self.states) }
 
         # Reward function R(s')
@@ -43,22 +47,23 @@ class MDPConverter:
         return T, R
 
 
-
-    def get_neighbors(self, state, save_transitions=True):
+    def get_neighbors(self, state: GameState, save_transitions=True):
         """
         For use by pybrain.utilities.flood
         Also logs (s,a,s') transitions and R(s')
+        Will leave the environment in an arbitrary neighbor state
         """
 
         # TODO maybe want to move this to core.py, if it turns out useful
         # Should keep everything intact, including random state
         def _get_neighbor(action_i, action):
-            assert not self.game.is_stochastic
+            assert not self.game.is_stochastic, 'Deterministic only'
             action = self.env.action_set[action_i]
             # TODO will have to not include random state for stochastic
-            game_state = self.game.getGameState(include_random_state=True)
+            # game_state = self.game.getGameState(include_random_state=True)
+            self.game.setGameState(state)
             self.task.performAction(action)
-            next_state = self.task.getObservation()
+            next_state = self.game.getGameState()
 
             if save_transitions:
                 # (s, a, s')
@@ -66,10 +71,28 @@ class MDPConverter:
                 # Assume R(s'), not R(s, a, s')
                 self.rewards[next_state] = self.task.getReward()
 
-            self.game.setGameState(game_state) # include random state
             return next_state
 
         next_states = [_get_neighbor(action_i, action) for action_i, action \
                        in enumerate(self.env.action_set)]
         return next_states
+
+
+    def get_observations(self, states: Optional[List[GameState]]=None) -> List[Observation]:
+        """
+        Get observations corresponding to states.
+        Only works after the initial conversion where self.states is populated.
+        Leaves the environment in an arbitrary state.
+        """
+        states = states or self.states
+        assert len(states) > 0, 'Must run a conversion method first, or pass in states'
+
+        def _get_observation(state: GameState):
+            self.game.setGameState(state)
+            observation = self.task.getObservation()
+            return observation
+
+        observations = [_get_observation(state) for state in states]
+        return observations
+
 

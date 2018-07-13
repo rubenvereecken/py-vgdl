@@ -21,9 +21,24 @@ class SpriteRegistry:
     def __init__(self):
         pass
 
+# Currently an action is a pygame.key press, an index into pygame.key.get_pressed()
+# This may not fly anymore with actions that require multiple simultaneous key presses
 Action = NewType('Action', int)
 Color = NewType('Color', Tuple[int, int, int])
 Direction = NewType('Direction', Tuple[int, int])
+# GameState = NewType('GameState', Dict)
+
+class GameState:
+    def __init__(self, state_dict):
+        self._state_dict = state_dict
+
+    def __hash__(self):
+        from .tools import freeze_dict
+        return hash(freeze_dict(self._state_dict))
+
+    def __getitem__(self, k):
+        return self._state_dict.get(k)
+
 
 class BasicGame:
     """
@@ -130,7 +145,7 @@ class BasicGame:
         self.sprite_order.append('avatar')
 
 
-    def initScreen(self, headless, zoom=1, title=None):
+    def initScreen(self, headless, zoom=5, title=None):
         self.headless = headless
         self.zoom = zoom
         self.display_size = (self.screensize[0] * zoom, self.screensize[1] * zoom)
@@ -194,7 +209,7 @@ class BasicGame:
         return sum(len(sprite_list) for sprite_list in self.sprite_groups.values())
 
 
-    def _createSprite(self, keys, pos):
+    def _createSprite(self, keys, pos) -> List['VGDLSprite']:
         """
         Creates multiple sprites corresponding to `keys` at position
         """
@@ -203,7 +218,7 @@ class BasicGame:
         for key in keys:
             if self.num_sprites > self.MAX_SPRITES:
                 print("Sprite limit reached.")
-                return
+                return []
             sclass, args, stypes = self.sprite_constr[key]
             # verify the singleton condition
             anyother = False
@@ -259,7 +274,7 @@ class BasicGame:
 
 
     def __getstate__(self):
-        assert len(self.kill_list) == 0
+        assert len(self.kill_list) == 0, 'Kill list not empty'
         objects = {}
         for sprite_type, sprites in self.sprite_groups.items():
             objects[sprite_type] = [sprite.__getstate__() for sprite in sprites]
@@ -272,12 +287,8 @@ class BasicGame:
         return state
 
 
-    def __setstate__(self):
-        pass
-
-
-    def getGameState(self, include_random_state=False) -> dict:
-        assert len(self.kill_list) == 0
+    def getGameState(self, include_random_state=False) -> GameState:
+        assert len(self.kill_list) == 0, 'Kill list not empty'
         sprite_states = {}
 
         def _sprite_state(sprite):
@@ -295,10 +306,10 @@ class BasicGame:
             'ended': self.ended,
             'sprites': sprite_states,
         }
-        return state
+        return GameState(state)
 
 
-    def setGameState(self, state: dict):
+    def setGameState(self, state: GameState):
         """
         Rebuilds all sprites and resets game state
         TODO: Keep a sprite registry and even keep dead sprites around,
@@ -311,7 +322,7 @@ class BasicGame:
 
             for sprite_state in sprite_states:
                 sprites = self._createSprite(sprite_type, sprite_state['position'])
-                sprite = sprites[0]; assert len(sprites) == 1
+                sprite = sprites[0]; assert len(sprites) == 1, '... but how'
                 sprite.setGameState(sprite_state['state'])
 
 
@@ -468,7 +479,8 @@ class BasicGame:
 
 
     def getPossibleActions(self) -> Dict[str, Action]:
-        return self.getAvatars()[0].declare_possible_actions()
+        avatar_cls, _, _ = self.sprite_constr['avatar']
+        return avatar_cls.declare_possible_actions()
 
 
     def tick(self, action: Action):
@@ -659,7 +671,7 @@ class Avatar:
     shrinkfactor=0.15
 
     def __init__(self):
-        self.actions = self.declare_possible_actions()
+        self.actions = Avatar.declare_possible_actions()
 
 class Resource(VGDLSprite):
     """ A special type of object that can be present in the game in two forms, either

@@ -4,14 +4,14 @@ from vgdl.ontology import GridPhysics, Avatar
 
 
 class StateObserver:
-    def get_state(self):
+    def get_observation(self):
         raise NotImplemented()
 
     def _rect_to_pos(self, r):
         return (r.left / self._game.block_size, r.top / self._game.block_size)
 
 
-class State:
+class Observation:
     def as_array(self):
         pass
 
@@ -26,13 +26,16 @@ class AbsoluteObserver(StateObserver):
     """
     def __init__(self, game: BasicGame):
         avatars = game.sprite_groups.get('avatar', [])
-        assert len(avatars) == 1
+        assert len(avatars) == 1, 'Single avatar'
         avatar = avatars[0]
         assert issubclass(avatar.physicstype, GridPhysics)
 
-        self._avatar = avatar
+        # TODO it is currently unsafe to keep a reference to a sprite
+        # self._avatar = avatar
         self._game = game
 
 
-    def get_state(self) -> State:
-        return self._rect_to_pos(self._avatar.rect)
+    def get_observation(self) -> Observation:
+        avatars = self._game.getAvatars()
+        assert len(avatars) == 1
+        return self._rect_to_pos(avatars[0].rect)

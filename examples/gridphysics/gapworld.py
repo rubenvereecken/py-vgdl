@@ -14,7 +14,8 @@ class RightMovingJumpingAvatar(MovingAvatar):
     Only moves and jumps to the right
     """
 
-    def declare_possible_actions(self):
+    @classmethod
+    def declare_possible_actions(cls):
         from pygame.locals import K_RIGHT, K_SPACE
         actions = {}
         actions["RIGHT"] = K_RIGHT
@@ -57,12 +58,13 @@ def test_gapworld():
     task = VGDLPybrainTask(env)
     mapper = vgdl.mdp.MDPConverter(task)
     T, R = mapper.convert_task_to_mdp()
+    print('Known states:')
+    print(mapper.get_observations())
     for action_i in range(T.shape[0]):
         print('Action {}:'.format(env.action_set[action_i]))
         print(T[action_i])
     print('Rewards:')
     print(R)
-    import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
 
 
 if __name__ == '__main__':
