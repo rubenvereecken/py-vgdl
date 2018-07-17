@@ -66,6 +66,10 @@ def test_gapworld():
     print('Rewards:')
     print(R)
 
+    from pybrain.rl.learners.modelbased import policyIteration, trueValues
+    _, policy = policyIteration(T, R, discountFactor=.9)
+    import ipdb; ipdb.set_trace()
+
 
 if __name__ == '__main__':
     test_gapworld()
