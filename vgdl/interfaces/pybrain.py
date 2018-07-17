@@ -29,6 +29,7 @@ class VGDLPybrainEnvironment(Environment):
         self.action_set: List[Action] = list(game.getPossibleActions().values())
         # self.init_state = state_handler.get_state()
         self.init_game_state = game.getGameState()
+        print(list(self.init_game_state))
         self.init_observation = state_handler.get_observation()
 
         # Pybrain Environment attributes

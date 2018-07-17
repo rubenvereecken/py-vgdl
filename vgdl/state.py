@@ -25,7 +25,7 @@ class AbsoluteObserver(StateObserver):
     - Assumes only the avatar can possess resources
     """
     def __init__(self, game: BasicGame):
-        avatars = game.sprite_groups.get('avatar', [])
+        avatars = game.getSprites('avatar')
         assert len(avatars) == 1, 'Single avatar'
         avatar = avatars[0]
         assert issubclass(avatar.physicstype, GridPhysics)
@@ -37,5 +37,6 @@ class AbsoluteObserver(StateObserver):
 
     def get_observation(self) -> Observation:
         avatars = self._game.getAvatars()
-        assert len(avatars) == 1
+        if not avatars:
+            import ipdb; ipdb.set_trace()
         return self._rect_to_pos(avatars[0].rect)

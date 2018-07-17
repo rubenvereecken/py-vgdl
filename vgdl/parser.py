@@ -1,7 +1,7 @@
 from .tools import Node, indentTreeParser
 from .core import BasicGame
 from vgdl import registry, ontology
-from vgdl.core import BasicGame
+from vgdl.core import BasicGame, SpriteRegistry
 
 registry.register_all(ontology)
 registry.register_class(BasicGame)
@@ -17,7 +17,9 @@ class VGDLParser:
             tree = indentTreeParser(tree).children[0]
         sclass, args = self._parseArgs(tree.content)
         args.update(kwargs)
-        self.game = sclass(**args)
+        # BasicGame construction
+        self.sprite_registry = SpriteRegistry()
+        self.game = sclass(self.sprite_registry, **args)
         for c in tree.children:
             if c.content == "SpriteSet":
                 self.parseSprites(c.children)
@@ -75,7 +77,7 @@ class VGDLParser:
             if len(sn.children) == 0:
                 if self.verbose:
                     print("Defining:", key, sclass, args, stypes)
-                self.game.sprite_constr[key] = (sclass, args, stypes)
+                self.sprite_registry.register_sprite_class(key, sclass, args, stypes)
                 if key in self.game.sprite_order:
                     # last one counts
                     self.game.sprite_order.remove(key)

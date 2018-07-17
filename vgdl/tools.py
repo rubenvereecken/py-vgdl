@@ -4,26 +4,34 @@ Video game description language -- utility functions.
 @author: Tom Schaul
 '''
 
+from functools import *
+from collections import UserDict
 from math import sqrt
 import pygame
 
 
 def freeze_dict(d):
-    """ This assumes d is immutable from here on """
-    if not isinstance(d, dict): return d
+    """
+    - Assumes d is immutable
+    - Assumes item ordering doesn't matter (ignores OrderedDict)
+    """
+    _is_dict = lambda d: isinstance(d, dict) or isinstance(d, UserDict)
+    if not _is_dict(d):
+        return d
+
     import copy
     d = copy.deepcopy(d)
 
     for k, v in d.items():
-        if isinstance(v, dict):
+        if _is_dict(v):
             d[k] = freeze_dict(v)
         elif isinstance(v, list):
-            v = tuple(freeze_dict(el) for el in v)
+            v = frozenset(freeze_dict(el) for el in v)
             d[k] = v
         else:
             d[k] = v
 
-    return tuple(d.items())
+    return frozenset(d.items())
 
 
 def logToFile(string):

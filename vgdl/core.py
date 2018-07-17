@@ -7,37 +7,178 @@ Video game description language -- parser, framework and core game classes.
 import pygame
 import random
 from .tools import Node, indentTreeParser
-from collections import defaultdict
+from collections import defaultdict, UserDict
 from .tools import roundedPoints
 import math
 import os
 import sys
+import copy
 import logging
 from typing import NewType, Optional, Union, Dict, List, Tuple
 
 VGDL_GLOBAL_IMG_LIB: Dict[str, str] = {}
 
 class SpriteRegistry:
+    """
+    A registry that knows of all types of sprites from a game description,
+    and all the sprite instances during the life of a game.
+
+    TODO: may need to split this into separate class and instance registries.
+    """
     def __init__(self):
-        pass
+        # Sprite classes, a class is identified by its key
+        self.classes: Dict[str, type] = {}
+        self.class_args: Dict[str, List] = {}
+        self.stypes: Dict[str, List] = {}
+        self.sprite_keys: List[str] = []
+
+        # Sprite instances, each has a unique id
+        self._sprites_by_key = defaultdict(list)
+        self._sprite_by_id = {}
+
+    def reset(self):
+        self._sprites_by_key.clear()
+        self._sprite_by_id.clear()
+
+    def register_sprite_class(self, key, cls, args, stypes):
+        assert not key in self.sprite_keys, 'Sprite key already registered'
+        self.classes[key] = cls
+        self.class_args[key] = args
+        self.stypes[key] = stypes
+        self.sprite_keys.append(key)
+
+    def get_sprite_defs(self):
+        for key in self.sprite_keys:
+            yield key, self.get_sprite_def(key)
+
+    def get_sprite_def(self, key):
+        return self.classes[key], self.class_args[key], self.stypes[key]
+
+    def request_id_number(self, key):
+        count = len(self._sprites_by_key[key])
+        return count + 1
+
+    def request_id(self, key):
+        n = self.request_id_number(key)
+        return '{}.{}'.format(key, n)
+
+    def create_sprite(self, key, id=None, **kwargs):
+        # TODO fix rng
+        sclass, args, stypes = self.get_sprite_def(key)
+        id = id or self.request_id(key)
+
+        sprite = sclass(key=key, id=id, **{**args, **kwargs})
+        sprite.stypes = stypes
+
+        self._sprites_by_key[key].append(sprite)
+        self._sprite_by_id[id] = sprite
+
+        return sprite
+
+    def kill_sprite(self, sprite: 'VGDLSprite'):
+        sprite.alive = False
+
+    def sprite_groups(self, include_dead=False) -> Dict[str, List['VGDLSprite']]:
+        if include_dead:
+            return self._sprites_by_key
+        else:
+            return { k: [sprite for sprite in sprites if sprite.alive] \
+                     for k, sprites in self._sprites_by_key.items()}
+
+    def get_state(self) -> dict:
+        def _sprite_state(sprite):
+            return dict(
+                id=sprite.id,
+                state=sprite.getGameState()
+            )
+
+        sprite_states = {}
+        for sprite_type, sprites in self._sprites_by_key.items():
+            sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites]
+
+        return sprite_states
+
+    def set_state(self, state: dict):
+        """
+        - Overwrite the state of matching sprites (id-wise)
+        - Remove sprites that are not in the new state
+        - Add sprites that are in the new state
+
+        Overwriting really is an unnecessary optimisation. All it gives us is
+        last references to objects that do not get added, such as the avatar.
+        """
+        assert set(self.sprite_keys) == set(state.keys()), \
+            'Known sprite keys should match'
+
+        other_ids = set([sprite['id'] for sprites in state.values() for sprite in sprites])
+        known_ids = set(self._sprite_by_id.keys())
+        deleted_ids = known_ids.difference(other_ids)
+        added_ids = other_ids.difference(known_ids)
+
+        if len(deleted_ids) > 0:
+            print('To be deleted')
+            print(deleted_ids)
+            for key in self.sprite_keys:
+                self._sprites_by_key[key] = [sprite for sprite in self._sprites_by_key[key] \
+                                             if not sprite.id in deleted_ids]
+
+        if len(added_ids) > 0:
+            print('To be added')
+            print(added_ids)
+
+        for key, sprite_states in state.items():
+            for sprite_state in sprite_states:
+                id = sprite_state['id']
+                if id in self._sprite_by_id:
+                    self._sprite_by_id[id].setGameState(sprite_state['state'])
+                else:
+                    # Including pos here because I don't like allowing position-less sprites
+                    sprite = self.create_sprite(key, id, pos=sprite_state['state']['pos'])
+                    sprite.setGameState(sprite_state['state'])
+
+
 
 # Currently an action is a pygame.key press, an index into pygame.key.get_pressed()
 # This may not fly anymore with actions that require multiple simultaneous key presses
 Action = NewType('Action', int)
 Color = NewType('Color', Tuple[int, int, int])
 Direction = NewType('Direction', Tuple[int, int])
-# GameState = NewType('GameState', Dict)
 
-class GameState:
-    def __init__(self, state_dict):
-        self._state_dict = state_dict
+class SpriteState(UserDict):
+    def __repr__(self):
+        def _clean_value(v):
+            if isinstance(v, defaultdict):
+                return dict(v)
+            return v
+        attributes = ', '.join('{}={}'.format(k, _clean_value(v)) for k, v in self.data.items())
+        return 'SpriteState({})'.format(attributes)
+
+class GameState(UserDict):
+    @property
+    def avatar_state(self):
+        return self.data['sprites']['avatar'][0]
+
+    def ended(self):
+        return self.data['ended']
+
+    def __eq__(self, other):
+        """ Game state equality, should ignore time etc """
+        return self.data['sprites'] == other.data['sprites']
 
     def __hash__(self):
+        """ Game state equality is based on sprite state """
         from .tools import freeze_dict
-        return hash(freeze_dict(self._state_dict))
+        return hash(freeze_dict(self.data['sprites']))
 
-    def __getitem__(self, k):
-        return self._state_dict.get(k)
+    def __lt__(self, other):
+        # return self.data['time'] < other.data['time']
+        return self.avatar_state['state']['pos'] < other.avatar_state['state']['pos']
+
+    def __repr__(self):
+        """ Assume single-avatar """
+        avatar_state = self.avatar_state['state']
+        return ('GameState(time={time}, score={score}, ended={ended}, '
+               'avatar=(pos={pos}, alive={alive}))').format(**self.data, **avatar_state)
 
 
 class BasicGame:
@@ -49,20 +190,16 @@ class BasicGame:
     """
     MAX_SPRITES = 10000
 
-    default_mapping = {'w': ['wall'],
-                       'A': ['avatar'],
-                       }
-
+    title = None
     seed = 123
     block_size = 10
     frame_rate = 25
     render_sprites = True
     load_save_enabled = False
 
-    notable_sprites: List[str] = []
     notable_resources: List[str] = []
 
-    def __init__(self, **kwargs):
+    def __init__(self, sprite_registry, **kwargs):
         from .ontology import Immovable, DARKGRAY, MovingAvatar, GOLD
         for name, value in kwargs.items():
             if name in ['notable_resources', 'notable_sprites']:
@@ -72,18 +209,16 @@ class BasicGame:
             else:
                 print("WARNING: undefined parameter '%s' for game! "%(name))
 
-        # contains mappings to constructor (just a few defaults are known)
-        self.sprite_constr = {'wall': (Immovable, {'color': DARKGRAY}, ['wall']),
-                              'avatar': (MovingAvatar, {}, ['avatar']),
-                              }
+        self.sprite_registry = sprite_registry
+
         # z-level of sprite types (in case of overlap)
         self.sprite_order  = ['wall',
                               'avatar',
                               ]
-        # contains instance lists
-        self.sprite_groups = defaultdict(list)
         # which sprite types (abstract or not) are singletons?
         self.singletons = []
+        # used for erasing dead sprites
+        self.kill_list = []
         # collision effects (ordered by execution order)
         self.collision_eff = []
         # for reading levels
@@ -99,8 +234,12 @@ class BasicGame:
         self._lastsaved = None
         self.reset()
 
-        if not self.notable_sprites:
-            self.notable_sprites = self.sprite_groups
+
+    def __repr__(self):
+        if not self.title is None:
+            return '{} `{}`'.format(self.__class__.__name__, self.title)
+        else:
+            return '{}'.format(self.__class__.__name__)
 
 
     def buildLevel(self, lstr):
@@ -116,7 +255,7 @@ class BasicGame:
 
         # set up resources
         self.notable_resources = []
-        for res_type, (sclass, args, _) in self.sprite_constr.items():
+        for res_type, (sclass, args, _) in self.sprite_registry.get_sprite_defs():
             if issubclass(sclass, Resource):
                 if 'res_type' in args:
                     res_type = args['res_type']
@@ -131,14 +270,13 @@ class BasicGame:
             for col, c in enumerate(l):
                 if c in self.char_mapping:
                     pos = (col*self.block_size, row*self.block_size)
-                    self._createSprite(self.char_mapping[c], pos)
-                elif c in self.default_mapping:
-                    pos = (col*self.block_size, row*self.block_size)
-                    self._createSprite(self.default_mapping[c], pos)
-        self.kill_list=[]
+                    self.create_sprites(self.char_mapping[c], pos)
         for _, _, effect, _ in self.collision_eff:
             if effect in stochastic_effects:
                 self.is_stochastic = True
+
+        # Used only for determining whether sprites should be erased
+        self.kill_list=[]
 
         # guarantee that avatar is always visible
         self.sprite_order.remove('avatar')
@@ -173,12 +311,9 @@ class BasicGame:
         self.score = 0
         self.time = 0
         self.ended = False
-        self.sprite_groups = defaultdict(list)
-        # TODO should use kill_list more consistently
-        # Is there a case where it makes sense to have a sprite in kill_list
-        # without having cleared it right away?
-        self.kill_list=[]
-        #self.random_generator = random.Random(self.seed)
+        self.kill_list.clear()
+        self.sprite_registry.reset()
+        # TODO rng?
 
 
     # Returns a list of empty grid cells
@@ -201,64 +336,63 @@ class BasicGame:
 
     def randomizeAvatar(self):
         if len(self.getAvatars()) == 0:
-            self._createSprite(['avatar'], self.random_generator.choice(self.emptyBlocks()))
+            self.create_sprite('avatar', self.random_generator.choice(self.emptyBlocks()))
 
 
     @property
     def num_sprites(self):
-        return sum(len(sprite_list) for sprite_list in self.sprite_groups.values())
+        return sum(len(sprite_list) for sprite_list in self.sprite_registry.sprite_groups().values())
 
 
-    def _createSprite(self, keys, pos) -> List['VGDLSprite']:
-        """
-        Creates multiple sprites corresponding to `keys` at position
-        """
-        if not isinstance(keys, list): keys = [keys]
-        res = []
-        for key in keys:
-            if self.num_sprites > self.MAX_SPRITES:
-                print("Sprite limit reached.")
-                return []
-            sclass, args, stypes = self.sprite_constr[key]
-            # verify the singleton condition
-            anyother = False
-            for pk in stypes[::-1]:
-                if pk in self.singletons:
-                    if self.numSprites(pk) > 0:
-                        anyother = True
-                        break
-            if anyother:
-                continue
-            s = sclass(pos=pos, size=(self.block_size, self.block_size),
-                name=key, random_generator=self.random_generator, **args)
-            s.stypes = stypes
-            self.sprite_groups[key].append(s)
-            if s.is_stochastic:
-                self.is_stochastic = True
-            res.append(s)
-        return res
+    def create_sprite(self, key, pos) -> Optional['VGDLSprite']:
+        assert self.num_sprites < self.MAX_SPRITES, 'Sprite limit reached'
+
+        sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
+
+        # TODO port this to registry
+        anyother = any(self.numSprites(pk) > 0 for pk in stypes[::-1] if pk in self.singletons)
+        if anyother:
+            return None
+
+        sprite = self.sprite_registry.create_sprite(key, pos=pos,
+                                           size=(self.block_size, self.block_size),
+                                           rng=self.random_generator)
+        self.is_stochastic = self.is_stochastic or sprite.is_stochastic
+
+        return sprite
+
+    def create_sprites(self, keys, pos) -> List['VGDLSprite']:
+        # Splitting it makes mypy happy
+        filter_nones = lambda l: filter(lambda el: el, l)
+        return list(filter_nones(self.create_sprite(key, pos) for key in keys))
+
+    def kill_sprite(self, sprite):
+        self.kill_list.append(sprite)
+        self.sprite_registry.kill_sprite(sprite)
 
 
     def __iter__(self):
         """ Iterator over all sprites (ordered) """
         for key in self.sprite_order:
-            if key not in self.sprite_groups:
+            if key not in self.sprite_registry.sprite_groups():
                 # abstract type
                 continue
-            for s in self.sprite_groups[key]:
+            for s in self.sprite_registry.sprite_groups()[key]:
                 yield s
 
     def numSprites(self, key):
         """ Abstract sprite groups are computed on demand only """
         deleted = len([s for s in self.kill_list if key in s.stypes])
-        if key in self.sprite_groups:
-            return len(self.sprite_groups[key])-deleted
+        assert len(self.kill_list) == 0, 'Deprecated behaviour'
+        if key in self.sprite_registry.sprite_groups():
+            return len(self.sprite_registry.sprite_groups()[key])-deleted
         else:
             return len([s for s in self if key in s.stypes])-deleted
 
     def getSprites(self, key):
-        if key in self.sprite_groups:
-            return [s for s in self.sprite_groups[key] if s not in self.kill_list]
+        assert len(self.kill_list) == 0, 'Deprecated behaviour'
+        if key in self.sprite_registry.sprite_groups():
+            return [s for s in self.sprite_registry.sprite_groups()[key] if s not in self.kill_list]
         else:
             # TODO I don't actually know where this would be used
             # This gets all sprites of a certain type
@@ -267,16 +401,17 @@ class BasicGame:
     def getAvatars(self):
         """ The currently alive avatar(s) """
         res = []
-        for ss in self.sprite_groups.values():
+        assert len(self.kill_list) == 0, 'Deprecated behaviour'
+        for ss in self.sprite_registry.sprite_groups(include_dead=True).values():
             if ss and isinstance(ss[0], Avatar):
                 res.extend([s for s in ss if s not in self.kill_list])
         return res
 
 
     def __getstate__(self):
-        assert len(self.kill_list) == 0, 'Kill list not empty'
+        assert len(self.kill_list) == 0, 'Deprecated behaviour'
         objects = {}
-        for sprite_type, sprites in self.sprite_groups.items():
+        for sprite_type, sprites in self.sprite_registry.sprite_groups().items():
             objects[sprite_type] = [sprite.__getstate__() for sprite in sprites]
 
         state = {
@@ -289,23 +424,24 @@ class BasicGame:
 
     def getGameState(self, include_random_state=False) -> GameState:
         assert len(self.kill_list) == 0, 'Kill list not empty'
-        sprite_states = {}
+        # sprite_states = {}
 
-        def _sprite_state(sprite):
-            return dict(
-                position=(sprite.rect.left, sprite.rect.top),
-                state=sprite.getGameState()
-            )
+        # def _sprite_state(sprite):
+        #     return dict(
+        #         position=(sprite.rect.left, sprite.rect.top),
+        #         state=sprite.getGameState()
+        #     )
 
-        for sprite_type, sprites in self.sprite_groups.items():
-            sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites]
+        # for sprite_type, sprites in self.sprite_registry.sprite_groups().items():
+        #     sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites]
 
         state = {
             'score': self.score,
             'time': self.time,
             'ended': self.ended,
-            'sprites': sprite_states,
+            'sprites': self.sprite_registry.get_state(),
         }
+        assert 'sprites' in state
         return GameState(state)
 
 
@@ -316,33 +452,27 @@ class BasicGame:
         just overwrite their state when setting game state.
         This has the advantage of keeping the Python objects intact.
         """
-        for sprite_type, sprite_states in state['sprites'].items():
-            # Discard all the other sprites
-            self.sprite_groups[sprite_type] = []
+        # for sprite_type, sprite_states in state['sprites'].items():
+        #     # Discard all the other sprites
+        #     self.sprite_groups[sprite_type] = []
 
-            for sprite_state in sprite_states:
-                sprites = self._createSprite(sprite_type, sprite_state['position'])
-                sprite = sprites[0]; assert len(sprites) == 1, '... but how'
-                sprite.setGameState(sprite_state['state'])
+        #     for sprite_state in sprite_states:
+        #         sprites = self._createSprite(sprite_type, sprite_state['position'])
+        #         sprite = sprites[0]; assert len(sprites) == 1, '... but how'
+        #         sprite.setGameState(sprite_state['state'])
 
-
-    def getBoundingBoxes(self):
-        boxes = []
-        for s_types in list(self.notable_sprites):
-            for s in self.getSprites(s_types):
-                box = [ float(s.rect.x),
-                        float(s.rect.y),
-                        float(s.rect.w),
-                        float(s.rect.h) ]
-                boxes.append(box)
-        return boxes
+        state = copy.deepcopy(state)
+        self.sprite_registry.set_state(state.pop('sprites'))
+        for k, v in state.items():
+            setattr(self, k, v)
 
     # Returns gamestate in observation format
     def getObservation(self):
         #from .ontology import Avatar, Immovable, Missile, Portal, RandomNPC, ResourcePack
         state = []
 
-        sprites_list = list(self.notable_sprites)
+        notable_sprites = self.sprite_registry.sprite_groups()
+        sprites_list = list(notable_sprites)
         num_classes = len(sprites_list)
         resources_list = self.notable_resources
 
@@ -364,7 +494,7 @@ class BasicGame:
         return state
 
     def lenObservation(self):
-        return 2 + 2 + (len(self.notable_sprites)) + len(self.notable_resources)
+        return 2 + 2 + (len(notable_sprites)) + len(self.notable_resources)
 
     def getFeatures(self):
         avatars = self.getAvatars()
@@ -380,7 +510,7 @@ class BasicGame:
             speed = [.0]
 
         sprite_distances = []
-        for key in self.notable_sprites:
+        for key in self.sprite_registry.sprite_groups():
             dist = 100
             if l is not 0:
               for s in self.getSprites(key):
@@ -396,19 +526,18 @@ class BasicGame:
         return math.hypot(s1.rect.x - s2.rect.x, s1.rect.y - s2.rect.y)
 
     def lenFeatures(self):
-        return 2 + 1 + len(self.notable_sprites) + len(self.notable_resources)
+        return 2 + 1 + len(self.sprite_registry.sprite_groups()) + len(self.notable_resources)
 
 
-    # Clears sprite from screen and removes dead sprites
     def _clearAll(self, onscreen=True):
+        """ Clears dead sprites from screen """
         for s in set(self.kill_list):
             if onscreen:
                 s._clear(self.screen, self.background, double=True)
-            self.sprite_groups[s.name].remove(s)
         if onscreen:
             for s in self:
                 s._clear(self.screen, self.background)
-        self.kill_list = []
+        self.kill_list.clear()
 
     def _drawAll(self):
         for s in self:
@@ -426,12 +555,11 @@ class BasicGame:
             # build the current sprite lists (if not yet available)
             for g in [g1, g2]:
                 if g not in ss:
-                    if g in self.sprite_groups:
-                        tmp = self.sprite_groups[g]
+                    if g in self.sprite_registry.sprite_groups():
+                        tmp = self.sprite_registry.sprite_groups()[g]
                     else:
                         tmp = []
-                        for key in self.sprite_groups:
-                            v = self.sprite_groups[key]
+                        for key, v in self.sprite_registry.sprite_groups().items():
                             if v and g in v[0].stypes:
                                 tmp.extend(v)
                     ss[g] = (tmp, len(tmp))
@@ -479,13 +607,17 @@ class BasicGame:
 
 
     def getPossibleActions(self) -> Dict[str, Action]:
-        avatar_cls, _, _ = self.sprite_constr['avatar']
+        avatar_cls, _, _ = self.sprite_registry.get_sprite_def('avatar')
         return avatar_cls.declare_possible_actions()
 
 
     def tick(self, action: Action):
         assert action in self.getPossibleActions().values(), \
           'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
+
+        if self.ended:
+            logging.warning('Action performed while game ended')
+            return
 
         # This is required for game-updates to work properly
         self.time += 1
@@ -501,12 +633,6 @@ class BasicGame:
         self.keystate = [0]* len(pygame.key.get_pressed())
         self.keystate[action] = 1
 
-        # Iterate Over Termination Criteria
-        for t in self.terminations:
-            self.ended, win = t.isDone(self)
-            if self.ended:
-                break
-
         # Update Sprites
         for s in self:
             s.update(self)
@@ -518,6 +644,12 @@ class BasicGame:
         # NOTE(ruben): This used to be before event handling in original code
         self._clearAll()
 
+        # Iterate Over Termination Criteria
+        for t in self.terminations:
+            self.ended, win = t.isDone(self)
+            if self.ended:
+                break
+
         if not self.headless:
             self._drawAll()
             pygame.transform.scale(self.screen, self.display_size, self.display)
@@ -527,9 +659,9 @@ class BasicGame:
 
 class VGDLSprite:
     """ Base class for all sprite types. """
-    name          = None
     COLOR_DISC    = [20,80,140,200]
 
+    key: str
     is_static     = False
     only_active   = False
     is_avatar     = False
@@ -541,19 +673,22 @@ class VGDLSprite:
     physicstype   = None # type: type
     shrinkfactor  = 0.
 
-    state_attributes = ['resources', 'speed']
+    state_attributes = ['alive', 'resources', 'speed']
 
-    def __init__(self, pos, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+    def __init__(self, pos=None, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+        if pos is None:
+            import ipdb; ipdb.set_trace()
         from .ontology import GridPhysics
-        self.rect = pygame.Rect(pos, size)
-        self.lastrect = self.rect
-        self.physicstype = physicstype or self.physicstype or GridPhysics
-        self.physics = self.physicstype()
+        self.alive            = True
+        self.rect             = pygame.Rect(pos, size)
+        self.lastrect         = self.rect
+        self.physicstype      = physicstype or self.physicstype or GridPhysics
+        self.physics          = self.physicstype()
         self.physics.gridsize = size
-        self.speed = speed or self.speed
-        self.cooldown = cooldown or self.cooldown
-        self.img = 0
-        self.color = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))
+        self.speed            = speed or self.speed
+        self.cooldown         = cooldown or self.cooldown
+        self.img              = 0
+        self.color            = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))
 
         for name, value in kwargs.items():
             try:
@@ -577,15 +712,19 @@ class VGDLSprite:
             self.image = VGDL_GLOBAL_IMG_LIB[self.img]
             self.scale_image = pygame.transform.scale(self.image, (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
 
-    def getGameState(self) -> dict:
+
+    def getGameState(self) -> SpriteState:
         state = { attr_name: getattr(self, attr_name) for attr_name in self.state_attributes \
                  if hasattr(self, attr_name)}
+        state['pos'] = self.rect.topleft
         # The alternative is to have each class define _just_ its state attrs,
         # flatten(c.state_attributes for c in inspect.getmro(self.__class__) \
         #   if c.hasattr('state_attributes'))
-        return state
+        return SpriteState(state)
 
-    def setGameState(self, state: Dict):
+    def setGameState(self, state: SpriteState):
+        self.rect.topleft = state.pop('pos')
+
         for k, v in state.items():
             if hasattr(self, k):
                 setattr(self, k, v)

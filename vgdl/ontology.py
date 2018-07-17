@@ -750,12 +750,12 @@ class MultiSpriteCounter(Termination):
 # ---------------------------------------------------------------------
 def killSprite(sprite, partner, game):
     """ Kill command """
-    game.kill_list.append(sprite)
+    game.kill_sprite(sprite)
 
 def killBoth(sprite, partner, game):
     """ Kill command """
-    game.kill_list.append(sprite)
-    game.kill_list.append(partner)
+    game.kill_sprite(sprite)
+    game.kill_sprite(partner)
 
 def cloneSprite(sprite, partner, game):
     game._createSprite([sprite.name], (sprite.rect.left, sprite.rect.top))

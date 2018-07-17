@@ -24,7 +24,7 @@ class MDPConverter:
         # [(s, a, s')]
         self.transitions: List[GameState, int, GameState] = []
         # S' -> R
-        self.rewards = {}
+        self.rewards: Dict[GameState, int] = { self.env.init_game_state: 0 }
 
         assert not self.game.is_stochastic, 'TODO: stochastic env'
 
@@ -47,12 +47,15 @@ class MDPConverter:
         return T, R
 
 
-    def get_neighbors(self, state: GameState, save_transitions=True):
+    def get_neighbors(self, state: GameState, save_transitions=True) -> List[GameState]:
         """
         For use by pybrain.utilities.flood
         Also logs (s,a,s') transitions and R(s')
         Will leave the environment in an arbitrary neighbor state
         """
+        print(state)
+        if state.ended():
+            return []
 
         # TODO maybe want to move this to core.py, if it turns out useful
         # Should keep everything intact, including random state
