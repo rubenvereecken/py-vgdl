@@ -6,7 +6,7 @@ import vgdl.mdp
 from vgdl.ontology import MovingAvatar, RIGHT
 import vgdl.interfaces
 from vgdl.interfaces.pybrain import VGDLPybrainEnvironment, VGDLPybrainTask
-from vgdl.state import AbsoluteObserver
+from vgdl.state import AbsoluteObserver, Observation
 
 
 class RightMovingJumpingAvatar(MovingAvatar):
@@ -40,6 +40,17 @@ class RightMovingJumpingAvatar(MovingAvatar):
             self.physics.activeMovement(self, action)
 
 
+class GapworldObserver(AbsoluteObserver):
+    """
+    All we need is a 1d x variable to represent state uniquely
+    """
+    def get_observation(self):
+        avatar = self._game.getAvatars()[0]
+        position = self._rect_to_pos(avatar.rect)
+        obs = Observation(x=position[0])
+        return obs
+
+
 def load_gapworld_game_and_level():
     with open(os.path.join(os.path.dirname(__file__), 'gapworld.txt')) as f:
         gamefile = f.read()
@@ -54,7 +65,7 @@ def test_gapworld():
     # Register the avatar first
     vgdl.registry.register_class(RightMovingJumpingAvatar)
     game = load_gapworld_game_and_level()
-    env = VGDLPybrainEnvironment(game, AbsoluteObserver(game))
+    env = VGDLPybrainEnvironment(game, GapworldObserver(game))
     task = VGDLPybrainTask(env)
     mapper = vgdl.mdp.MDPConverter(task)
     T, R = mapper.convert_task_to_mdp()
@@ -67,7 +78,14 @@ def test_gapworld():
     print(R)
 
     from pybrain.rl.learners.modelbased import policyIteration, trueValues
-    _, policy = policyIteration(T, R, discountFactor=.9)
+    # policy is S x A
+    policy, optimal_T = policyIteration(T, R, discountFactor=.9)
+    # So this seems wrong whether we allow transitions from absorbing states
+    # or not, but it's a good indication
+    V = trueValues(optimal_T, R, discountFactor=.9)
+
+    print('Optimal policy:')
+    print(policy)
     import ipdb; ipdb.set_trace()
 
 
