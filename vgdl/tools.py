@@ -19,7 +19,7 @@ class PrettyDict:
             if isinstance(v, dict):
                 return dict(v)
             return v
-        attributes = ', '.join('{}={}'.format(k, _clean_value(v)) for k, v in self.data.items())
+        attributes = ', '.join('{}={}'.format(k, _clean_value(v)) for k, v in self.items())
         return '{}({})'.format(self.__class__.__name__, attributes)
 
 

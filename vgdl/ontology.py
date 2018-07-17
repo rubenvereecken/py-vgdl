@@ -607,7 +607,7 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
     @classmethod
     def declare_possible_actions(cls):
         from pygame.locals import K_SPACE
-        actions = super()
+        actions = super().declare_possible_actions()
         actions["SPACE"] = K_SPACE
         return actions
 

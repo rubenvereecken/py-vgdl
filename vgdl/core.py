@@ -81,11 +81,18 @@ class SpriteRegistry:
         sprite.alive = False
 
     def groups(self, include_dead=False) -> Dict[str, List['VGDLSprite']]:
+        assert isinstance(include_dead, bool), 'include_dead must be bool'
         if include_dead:
             return self._sprites_by_key
         else:
             return { k: [sprite for sprite in sprites if sprite.alive] \
                      for k, sprites in self._sprites_by_key.items()}
+
+    def group(self, key, include_dead=False) -> List['VGDLSprite']:
+        if include_dead:
+            return self._sprites_by_key[key]
+        else:
+            return [ sprite for sprite in self._sprites_by_key[key] if sprite.alive ]
 
     def get_state(self) -> dict:
         def _sprite_state(sprite):
@@ -469,33 +476,6 @@ class BasicGame:
     def lenObservation(self):
         return 2 + 2 + (len(notable_sprites)) + len(self.notable_resources)
 
-    def getFeatures(self):
-        avatars = self.getAvatars()
-        l = len(avatars)
-        if l is not 0:
-            a = avatars[0]
-            avatar_pos = [float(a.rect.x)/self.block_size, float(a.rect.y)/self.block_size]
-            resources = [float(a.resources[r]) for r in self.notable_resources]
-            speed = [a.speed]
-        else:
-            avatar_pos = [.0, .0]
-            resources = [.0 for r in self.notable_resources]
-            speed = [.0]
-
-        sprite_distances = []
-        for key in self.sprite_registry.groups():
-            dist = 100
-            if l is not 0:
-              for s in self.getSprites(key):
-                dist = min(self._getDistance(a, s)/self.block_size, dist)
-            sprite_distances.append(dist)
-
-        features = avatar_pos + speed + sprite_distances + resources
-        return features
-
-    def _getDistance(self, s1, s2):
-        return math.hypot(s1.rect.x - s2.rect.x, s1.rect.y - s2.rect.y)
-
     def lenFeatures(self):
         return 2 + 1 + len(self.sprite_registry.groups()) + len(self.notable_resources)
 
@@ -578,7 +558,9 @@ class BasicGame:
 
 
     def getPossibleActions(self) -> Dict[str, Action]:
-        avatar_cls, _, _ = self.sprite_registry.get_sprite_def('avatar')
+        """ Assume actions don't change """
+        from vgdl.core import Avatar
+        avatar_cls = next(cls for cls in self.sprite_registry.classes.values() if issubclass(cls, Avatar))
         return avatar_cls.declare_possible_actions()
 
 
@@ -647,8 +629,6 @@ class VGDLSprite:
     state_attributes = ['alive', 'resources', 'speed']
 
     def __init__(self, pos=None, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
-        if pos is None:
-            import ipdb; ipdb.set_trace()
         from .ontology import GridPhysics
         self.alive            = True
         self.rect             = pygame.Rect(pos, size)
@@ -659,7 +639,9 @@ class VGDLSprite:
         self.speed            = speed or self.speed
         self.cooldown         = cooldown or self.cooldown
         self.img              = 0
-        self.color            = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))
+        # TODO rng
+        self.color = color or self.color
+        # self.color            = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))
 
         for name, value in kwargs.items():
             try:
@@ -773,7 +755,8 @@ class VGDLSprite:
             r = screen.blit(background, self.lastrect, self.lastrect)
 
     def __repr__(self):
-        return self.name+" at (%s,%s)"%(self.rect.left, self.rect.top)
+        import ipdb; ipdb.set_trace()
+        return self.key+" at (%s,%s)"%(self.rect.left, self.rect.top)
 
 
 class Avatar:
@@ -795,7 +778,7 @@ class Resource(VGDLSprite):
     @property
     def resourceType(self):
         if self.res_type is None:
-            return self.name
+            return self.key
         else:
             return self.res_type
 
