@@ -5,9 +5,22 @@ Video game description language -- utility functions.
 '''
 
 from functools import *
-from collections import UserDict
+from collections import UserDict, defaultdict
 from math import sqrt
 import pygame
+
+
+class PrettyDict:
+    """
+    Mixin for pretty user-defined dictionary printing
+    """
+    def __repr__(self):
+        def _clean_value(v):
+            if isinstance(v, dict):
+                return dict(v)
+            return v
+        attributes = ', '.join('{}={}'.format(k, _clean_value(v)) for k, v in self.data.items())
+        return '{}({})'.format(self.__class__.__name__, attributes)
 
 
 def freeze_dict(d):

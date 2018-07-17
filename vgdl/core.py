@@ -6,7 +6,7 @@ Video game description language -- parser, framework and core game classes.
 
 import pygame
 import random
-from .tools import Node, indentTreeParser
+from .tools import Node, indentTreeParser, PrettyDict
 from collections import defaultdict, UserDict
 from .tools import roundedPoints
 import math
@@ -144,14 +144,8 @@ Action = NewType('Action', int)
 Color = NewType('Color', Tuple[int, int, int])
 Direction = NewType('Direction', Tuple[int, int])
 
-class SpriteState(UserDict):
-    def __repr__(self):
-        def _clean_value(v):
-            if isinstance(v, defaultdict):
-                return dict(v)
-            return v
-        attributes = ', '.join('{}={}'.format(k, _clean_value(v)) for k, v in self.data.items())
-        return 'SpriteState({})'.format(attributes)
+class SpriteState(PrettyDict, UserDict):
+    pass
 
 class GameState(UserDict):
     @property

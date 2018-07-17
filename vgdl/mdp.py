@@ -54,6 +54,7 @@ class MDPConverter:
         Will leave the environment in an arbitrary neighbor state
         """
         print(state)
+        # Final states are absorbing state
         if state.ended():
             return []
 
