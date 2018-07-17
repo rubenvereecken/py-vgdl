@@ -1,7 +1,7 @@
 import numpy as np
 from pybrain.utilities import flood
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 import vgdl
 import vgdl.interfaces
@@ -22,7 +22,7 @@ class MDPConverter:
 
         self.states: List[GameState] = []
         # [(s, a, s')]
-        self.transitions: List[GameState, int, GameState] = []
+        self.transitions: List[Tuple[GameState, int, GameState]] = []
         # S' -> R
         self.rewards: Dict[GameState, int] = { self.env.init_game_state: 0 }
 
