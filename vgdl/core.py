@@ -76,9 +76,21 @@ class SpriteRegistry:
         return sprite
 
     def kill_sprite(self, sprite: 'VGDLSprite'):
+        """ Kills a sprite while keeping track of it """
         assert sprite is self._sprite_by_id[sprite.id], \
             'Unknown sprite %s' % sprite
         sprite.alive = False
+
+    def destroy_sprite(self, sprite):
+        """
+        Destroys sprite based on id, erase all traces.
+        Potentially useful when replacing a sprite
+        """
+        if sprite.id in self._sprite_by_id:
+            del self._sprite_by_id[sprite.id]
+            self._sprites_by_key[sprite.key] = [s for s in self._sprites_by_key[sprite.key] if not s.id == sprite.id]
+            return True
+        return False
 
     def groups(self, include_dead=False) -> Dict[str, List['VGDLSprite']]:
         assert isinstance(include_dead, bool), 'include_dead must be bool'
@@ -342,7 +354,7 @@ class BasicGame:
         return sum(len(sprite_list) for sprite_list in self.sprite_registry.groups().values())
 
 
-    def create_sprite(self, key, pos) -> Optional['VGDLSprite']:
+    def create_sprite(self, key, pos, id=None) -> Optional['VGDLSprite']:
         assert self.num_sprites < self.MAX_SPRITES, 'Sprite limit reached'
 
         sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
@@ -352,7 +364,7 @@ class BasicGame:
         if anyother:
             return None
 
-        sprite = self.sprite_registry.create_sprite(key, pos=pos,
+        sprite = self.sprite_registry.create_sprite(key, pos=pos, id=id,
                                            size=(self.block_size, self.block_size),
                                            rng=self.random_generator)
         self.is_stochastic = self.is_stochastic or sprite.is_stochastic
@@ -368,6 +380,9 @@ class BasicGame:
         self.kill_list.append(sprite)
         self.sprite_registry.kill_sprite(sprite)
 
+    def destroy_sprite(self, sprite):
+        self.kill_list.append(sprite)
+        self.sprite_registry.destroy_sprite(sprite)
 
     def __iter__(self):
         """ Iterator over all sprites (ordered) """

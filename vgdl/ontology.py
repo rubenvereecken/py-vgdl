@@ -761,11 +761,11 @@ def cloneSprite(sprite, partner, game):
     game.create_sprite(sprite.name, (sprite.rect.left, sprite.rect.top))
 
 def transformTo(sprite, partner, game, stype='wall'):
-    newones = game.create_sprite(stype, (sprite.rect.left, sprite.rect.top))
-    if len(newones) > 0:
-        if isinstance(sprite, OrientedSprite) and isinstance(newones[0], OrientedSprite):
-            newones[0].orientation = sprite.orientation
-        killSprite(sprite, partner, game)
+    game.destroy_sprite(sprite)
+    new_sprite = game.create_sprite(stype, sprite.rect.topleft, sprite.id)
+    assert new_sprite, 'This really was not supposed to happen, cannot recover'
+    if isinstance(sprite, OrientedSprite) and isinstance(new_sprite, OrientedSprite):
+        new_sprite.orientation = sprite.orientation
 
 def stepBack(sprite, partner, game):
     """ Revert last move. """
