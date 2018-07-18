@@ -461,40 +461,6 @@ class BasicGame:
             setattr(self, k, v)
 
 
-    # Returns gamestate in observation format
-    def getObservation(self):
-        #from .ontology import Avatar, Immovable, Missile, Portal, RandomNPC, ResourcePack
-        state = []
-
-        notable_sprites = self.sprite_registry.groups()
-        sprites_list = list(notable_sprites)
-        num_classes = len(sprites_list)
-        resources_list = self.notable_resources
-
-        for i, key in enumerate(sprites_list):
-            class_one_hot = [float(j==i) for j in range(num_classes)]
-            for s in self.getSprites(key):
-                position = [ float(s.rect.y)/self.block_size,
-                             float(s.rect.x)/self.block_size ]
-                if hasattr(s, 'orientation'):
-                    orientation = [float(a) for a in s.orientation]
-                else:
-                    orientation = [0.0, 0.0]
-
-                resources = [ float(s.resources[r]) for r in resources_list ]
-
-                object_att = position + orientation + class_one_hot + resources
-
-                state.append(object_att)
-        return state
-
-    def lenObservation(self):
-        return 2 + 2 + (len(notable_sprites)) + len(self.notable_resources)
-
-    def lenFeatures(self):
-        return 2 + 1 + len(self.sprite_registry.groups()) + len(self.notable_resources)
-
-
     def _clearAll(self, onscreen=True):
         """ Clears dead sprites from screen """
         for s in set(self.kill_list):
