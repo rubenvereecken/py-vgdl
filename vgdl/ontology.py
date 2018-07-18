@@ -700,6 +700,14 @@ class MarioAvatar(InertialAvatar):
         self.physics.activeMovement(self, action)
         VGDLSprite.update(self, game)
 
+    @classmethod
+    def declare_possible_actions(cls):
+        from pygame.locals import K_SPACE
+        actions = super().declare_possible_actions()
+        actions['SPACE'] = K_SPACE
+        return actions
+
+
 
 
 # ---------------------------------------------------------------------
@@ -724,6 +732,9 @@ class SpriteCounter(Termination):
         self.limit = limit
         self.stype = stype
         self.win = win
+
+    def __repr__(self):
+        return 'SpriteCounter(stype={})'.format(self.stype)
 
     def isDone(self, game):
         if game.numSprites(self.stype) <= self.limit:
