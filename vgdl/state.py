@@ -6,17 +6,6 @@ from vgdl.ontology import GridPhysics, Avatar
 from vgdl.tools import PrettyDict
 
 
-class StateObserver:
-    def __init__(self, game: BasicGame) -> None:
-        self._game = game
-
-    def get_observation(self):
-        raise NotImplemented()
-
-    def _rect_to_pos(self, r):
-        return (r.left // self._game.block_size, r.top // self._game.block_size)
-
-
 class Observation:
     def as_array(self):
         raise NotImplemented()
@@ -38,6 +27,29 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
     def __iter__(self):
         for el in self.as_array():
             yield el
+
+
+class StateObserver:
+    def __init__(self, game: BasicGame) -> None:
+        self._game = game
+
+    def get_observation(self):
+        raise NotImplemented()
+
+    def _rect_to_pos(self, r):
+        return (r.left // self._game.block_size, r.top // self._game.block_size)
+
+    @property
+    def observation_shape(self):
+        obs = self.get_observation()
+        shape = obs.as_array().shape
+        return shape
+
+    @property
+    def observation_length(self):
+        obs = self.get_observation()
+        length = len(obs.as_array())
+        return length
 
 
 class AbsoluteObserver(StateObserver):
