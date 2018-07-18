@@ -629,7 +629,6 @@ class VGDLSprite:
     """ Base class for all sprite types. """
     COLOR_DISC    = [20,80,140,200]
 
-    key: str
     is_static     = False
     only_active   = False
     is_avatar     = False
@@ -643,11 +642,15 @@ class VGDLSprite:
 
     state_attributes = ['alive', 'resources', 'speed']
 
-    def __init__(self, pos=None, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+    def __init__(self, key, id, pos, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+        # Every sprite must have a key, an id, and a position
+        self.key: str = key
+        self.id: str  = id
+        self.rect     = pygame.Rect(pos, size)
+        self.lastrect = self.rect
+        self.alive    = True
+
         from .ontology import GridPhysics
-        self.alive            = True
-        self.rect             = pygame.Rect(pos, size)
-        self.lastrect         = self.rect
         self.physicstype      = physicstype or self.physicstype or GridPhysics
         self.physics          = self.physicstype()
         self.physics.gridsize = size
@@ -770,8 +773,7 @@ class VGDLSprite:
             r = screen.blit(background, self.lastrect, self.lastrect)
 
     def __repr__(self):
-        import ipdb; ipdb.set_trace()
-        return self.key+" at (%s,%s)"%(self.rect.left, self.rect.top)
+        return "{} `{}` at ({}, {})".format(self.key, self.id, *self.rect.topleft)
 
 
 class Avatar:
