@@ -149,7 +149,7 @@ class Spreader(Flicker):
         if self._age == 2:
             for u in BASEDIRS:
                 if game.random_generator.random() < self.spreadprob:
-                    game._createSprite([self.name], (self.lastrect.left + u[0] * self.lastrect.size[0],
+                    game.create_sprite(self.name, (self.lastrect.left + u[0] * self.lastrect.size[0],
                                                      self.lastrect.top + u[1] * self.lastrect.size[1]))
 
 class SpriteProducer(VGDLSprite):
@@ -178,7 +178,7 @@ class SpawnPoint(SpriteProducer):
 
     def update(self, game):
         if (game.time % self.cooldown == 0 and game.random_generator.random() < self.prob):
-            game._createSprite([self.stype], (self.rect.left, self.rect.top))
+            game.create_sprite(self.stype, (self.rect.left, self.rect.top))
             self.counter += 1
 
         if self.total and self.counter >= self.total:
@@ -527,7 +527,7 @@ class FlakAvatar(HorizontalAvatar, SpriteProducer):
     def _shoot(self, game):
         from pygame.locals import K_SPACE
         if self.stype and game.keystate[K_SPACE]:
-            game._createSprite([self.stype], (self.rect.left, self.rect.top))
+            game.create_sprite(self.stype, (self.rect.left, self.rect.top))
 
 class OrientedAvatar(OrientedSprite, MovingAvatar):
     """ Avatar retains its orientation, but moves in cardinal directions. """
@@ -635,7 +635,7 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
         from pygame.locals import K_SPACE
         if self.stype and game.keystate[K_SPACE]:
             u = unitVector(self.orientation)
-            newones = game._createSprite([self.stype], (self.lastrect.left + u[0] * self.lastrect.size[0],
+            newones = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
                                                        self.lastrect.top + u[1] * self.lastrect.size[1]))
             if len(newones) > 0  and isinstance(newones[0], OrientedSprite):
                 newones[0].orientation = unitVector(self.orientation)
@@ -758,10 +758,10 @@ def killBoth(sprite, partner, game):
     game.kill_sprite(partner)
 
 def cloneSprite(sprite, partner, game):
-    game._createSprite([sprite.name], (sprite.rect.left, sprite.rect.top))
+    game.create_sprite(sprite.name, (sprite.rect.left, sprite.rect.top))
 
 def transformTo(sprite, partner, game, stype='wall'):
-    newones = game._createSprite([stype], (sprite.rect.left, sprite.rect.top))
+    newones = game.create_sprite(stype, (sprite.rect.left, sprite.rect.top))
     if len(newones) > 0:
         if isinstance(sprite, OrientedSprite) and isinstance(newones[0], OrientedSprite):
             newones[0].orientation = sprite.orientation
@@ -899,7 +899,7 @@ def changeResource(sprite, partner, game, resource, value=1):
 def spawnIfHasMore(sprite, partner, game, resource, stype, limit=1):
     """ If 'sprite' has more than a limit of the resource type given, it spawns a sprite of 'stype'. """
     if sprite.resources[resource] >= limit:
-        game._createSprite([stype], (sprite.rect.left, sprite.rect.top))
+        game.create_sprite(stype, (sprite.rect.left, sprite.rect.top))
 
 def killIfHasMore(sprite, partner, game, resource, limit=1):
     """ If 'sprite' has more than a limit of the resource type given, it dies. """
