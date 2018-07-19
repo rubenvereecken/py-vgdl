@@ -4,8 +4,11 @@ Video game lling to description language -- ontology of concepts.
 @author: Tom Schaul
 '''
 
+import numpy as np
 from math import sqrt
+import itertools
 import pygame
+import logging
 from typing import NewType, Optional, Union, Dict, List, Tuple
 
 from .tools import triPoints, unitVector, vectNorm, oncePerStep
@@ -85,15 +88,23 @@ class ContinuousPhysics(GridPhysics):
                 self.activeMovement(sprite, (0, self.gravity * sprite.mass))
             sprite.speed *= (1 - self.friction)
 
-    def activeMovement(self, sprite, action, speed=None):
+    def activeMovement(self, sprite, force, speed=None):
         """ Here the assumption is that the controls determine the direction of
         acceleration of the sprite. """
         if speed is None:
             speed = sprite.speed
-        v1 = action[0] / float(sprite.mass) + sprite.orientation[0] * speed
-        v2 = action[1] / float(sprite.mass) + sprite.orientation[1] * speed
-        sprite.orientation = unitVector((v1, v2))
-        sprite.speed = vectNorm((v1, v2)) / vectNorm(sprite.orientation)
+        force = np.array(force)
+        orientation = np.array(sprite.orientation)
+        speed = np.array(speed)
+
+        # Velocity is stored in the unit vector orientation and
+        # the scalar speed separately
+        old_velocity = orientation * speed
+        velocity = old_velocity + force / sprite.mass
+
+        # This is now of unit length
+        sprite.orientation = velocity / np.linalg.norm(velocity)
+        sprite.speed = np.linalg.norm(velocity)
 
     def distance(self, r1, r2):
         """ Continuous physics use Euclidean distances. """
@@ -426,44 +437,51 @@ class MovingAvatar(VGDLSprite, Avatar):
     alternate_keys=False
 
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        possible_actions = self.__class__.declare_possible_actions()
+        self.keys_to_action = {tuple(sorted(a.keys)): a for a in possible_actions.values()}
+
+
     @classmethod
     def declare_possible_actions(cls) -> Dict[str, Action]:
         """
         Assume this does not change throughout the game. That is, we commit
         to the semantics that all actions are always possible, no matter
         whether they will actually have an effect or not.
+
+        Composite actions (multiple keys) must be defined separately.
+        It is important that a composite action is defined explicitly,
+        as most RL agents work with enumerated actions instead of
+        actions represented by multi-dimensional vectors (i.e. keypresses).
         """
         from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
         actions = {}
-        actions["UP"] = K_UP
-        actions["DOWN"] = K_DOWN
-        actions["LEFT"] = K_LEFT
-        actions["RIGHT"] = K_RIGHT
-        actions["NO_OP"] = 0
+        actions["UP"] = Action(K_UP)
+        actions["DOWN"] = Action(K_DOWN)
+        actions["LEFT"] = Action(K_LEFT)
+        actions["RIGHT"] = Action(K_RIGHT)
+        actions["NO_OP"] = Action()
         return actions
 
     def _readAction(self, game):
-        actions = self._readMultiActions(game)
-        if actions:
-            return actions[0]
-        else:
-            return None
+        """
+        An action can consist of multiple key presses. The action corresponding
+        to the most key presses will be returned. Ties are broken arbitrarily.
+        """
+        active_keys = np.where(game.keystate)[0]
+        active_keys = tuple(sorted(active_keys))
 
-    def _readMultiActions(self, game):
-        """ Read multiple simultaneously pressed button actions. """
-        from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN, K_a, K_s, K_d, K_w
-        res = []
-        if self.alternate_keys:
-            if   game.keystate[K_d]: res += [RIGHT]
-            elif game.keystate[K_a]:  res += [LEFT]
-            if   game.keystate[K_w]:    res += [UP]
-            elif game.keystate[K_s]:  res += [DOWN]
-        else:
-            if   game.keystate[K_RIGHT]: res += [RIGHT]
-            elif game.keystate[K_LEFT]:  res += [LEFT]
-            if   game.keystate[K_UP]:    res += [UP]
-            elif game.keystate[K_DOWN]:  res += [DOWN]
-        return res
+        # Up to 3 buttons active at a time, at least 0,
+        for num_keys in range(max(3, len(active_keys)), -1, -1):
+
+            # Find the longest key combo that matches a known action
+            for key_combo in itertools.combinations(active_keys, num_keys):
+                if key_combo in self.keys_to_action:
+                    return self.keys_to_action[key_combo]
+
+        assert False
 
     def update(self, game):
         VGDLSprite.update(self, game)
@@ -686,25 +704,28 @@ class MarioAvatar(InertialAvatar):
     draw_arrow = False
     strength = 10
     airsteering = False
+
     def update(self, game):
         action = self._readAction(game)
-        if action is None:
-            action = (0, 0)
+        acceleration = action.as_acceleration()
         from pygame.locals import K_SPACE
+
+        # If in the air with no vertical velocity, allow jumping
         if game.keystate[K_SPACE] and self.orientation[1] == 0:
-            action = (action[0] * sqrt(self.strength), -self.strength)
+            acceleration = (acceleration[0] * sqrt(self.strength), -self.strength)
         elif self.orientation[1] == 0 or self.airsteering:
-            action = (action[0] * sqrt(self.strength), 0)
+            acceleration = (acceleration[0] * sqrt(self.strength), 0)
         else:
-            action = (0, 0)
-        self.physics.activeMovement(self, action)
+            acceleration = (0, 0)
+
+        self.physics.activeMovement(self, acceleration)
         VGDLSprite.update(self, game)
 
     @classmethod
     def declare_possible_actions(cls):
         from pygame.locals import K_SPACE
         actions = super().declare_possible_actions()
-        actions['SPACE'] = K_SPACE
+        actions['SPACE'] = Action(K_SPACE)
         return actions
 
 
