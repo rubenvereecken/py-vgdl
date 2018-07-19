@@ -161,7 +161,7 @@ class SpriteRegistry:
 
 # Currently an action is a pygame.key press, an index into pygame.key.get_pressed()
 # This may not fly anymore with actions that require multiple simultaneous key presses
-Action = NewType('Action', int)
+# Action = NewType('Action', int)
 Color = NewType('Color', Tuple[int, int, int])
 Direction = NewType('Direction', Tuple[int, int])
 
@@ -194,6 +194,34 @@ class GameState(UserDict):
         avatar_state = self.avatar_state['state']
         return ('GameState(time={time}, score={score}, ended={ended}, '
                'avatar=(pos={pos}, alive={alive}))').format(**self.data, **avatar_state)
+
+
+class Action:
+    """
+    Actions are based on pygame keys, even though we do not actually
+    use those keys. They're a handy leftover to vectorise actions
+    and make thinking with them and programming game dynamics easier.
+    """
+    def __init__(self, *args):
+        self.keys = tuple(sorted(args))
+
+    def as_acceleration(self):
+        """
+        Directional keys are used to encode directions.
+        Opposite directions cancel eachother out.
+        """
+        from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
+        return ( -1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
+                 -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys) )
+
+
+    def __repr__(self):
+        import pygame.key
+        _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
+        return 'Action({})'.format(','.join(_key_name(k) for k in self.keys))
+
+    def __eq__(self, other):
+        return self.keys == other.keys
 
 
 class BasicGame:
@@ -545,9 +573,19 @@ class BasicGame:
         return avatar_cls.declare_possible_actions()
 
 
-    def tick(self, action: Action):
+    def tick(self, action: Union[Action, int]):
+        """
+        Actions are currently communicated to the rest of the program
+        through game.keystate, which mimics pygame.key.get_pressed().
+        Maybe one beautiful day we can step away from that.
+        It's a leftover but it works and it focuses on designing
+        games that are human playable. Key presses are easy to reason about,
+        even if we do not actually use them.
+        """
         assert action in self.getPossibleActions().values(), \
           'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
+        if isinstance(action, int):
+            action = Action(action)
 
         if self.ended:
             logging.warning('Action performed while game ended')
@@ -565,7 +603,8 @@ class BasicGame:
         # Update Keypresses
         # Agents are updated during the update routine in their ontology files, this demends on BasicGame.keystate
         self.keystate = [0]* len(pygame.key.get_pressed())
-        self.keystate[action] = 1
+        for key in action.keys:
+            self.keystate[key] = 1
 
         # Update Sprites
         for s in self:
@@ -747,6 +786,7 @@ class Avatar:
     shrinkfactor=0.15
 
     def __init__(self):
+        assert false
         self.actions = Avatar.declare_possible_actions()
 
 class Resource(VGDLSprite):
