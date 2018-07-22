@@ -34,6 +34,7 @@ class SpriteRegistry:
         self.sprite_keys: List[str] = []
 
         # Sprite instances, each has a unique id
+        # Sprites are grouped by their primary stype, but they can have more
         self._sprites_by_key = defaultdict(list)
         self._sprite_by_id = {}
 
@@ -106,6 +107,12 @@ class SpriteRegistry:
             return self._sprites_by_key[key]
         else:
             return [ sprite for sprite in self._sprites_by_key[key] if sprite.alive ]
+
+    def with_stype(self, stype):
+        if stype in self.groups():
+            return self.group(stype)
+        else:
+            return [s for sprites in self.groups().values() for s in sprites if stype in s.stypes]
 
     def get_state(self) -> dict:
         def _sprite_state(sprite):
@@ -522,20 +529,14 @@ class BasicGame:
                 del self.lastcollisions[key]
 
     def _eventHandling(self):
-        self.lastcollisions = {}
+        self.lastcollisions: Dict[str, Tuple['VGDLSprite',int]] = {}
         ss = self.lastcollisions
         for g1, g2, effect, kwargs in self.collision_eff:
             # build the current sprite lists (if not yet available)
             for g in [g1, g2]:
                 if g not in ss:
-                    if g in self.sprite_registry.groups():
-                        tmp = self.sprite_registry.groups()[g]
-                    else:
-                        tmp = []
-                        for key, v in self.sprite_registry.groups().items():
-                            if v and g in v[0].stypes:
-                                tmp.extend(v)
-                    ss[g] = (tmp, len(tmp))
+                    sprites = self.sprite_registry.with_stype(g)
+                    ss[g] = (sprites, len(sprites))
 
             # special case for end-of-screen
             if g2 == "EOS":
@@ -545,13 +546,10 @@ class BasicGame:
                         effect(s1, None, self, **kwargs)
                 continue
 
-            # iterate over the shorter one
-            ss1, l1 = ss[g1]
-            ss2, l2 = ss[g2]
-            if l1 < l2:
-                shortss, longss, switch = ss1, ss2, False
-            else:
-                shortss, longss, switch = ss2, ss1, True
+            # TODO care about efficiency again sometime, test short sprite list vs long
+            # Can do this by sorting first?
+            sprites, _ = ss[g1]
+            others, _ = ss[g2]
 
             # score argument is not passed along to the effect function
             score = 0
@@ -560,23 +558,19 @@ class BasicGame:
                 score = kwargs['scoreChange']
                 del kwargs['scoreChange']
 
-            # do collision detection
-            for s1 in shortss:
-                for ci in s1.rect.collidelistall(longss):
-                    s2 = longss[ci]
-                    if s1 == s2:
+            for sprite in sprites:
+                for collision_i in sprite.rect.collidelistall(others):
+                    other = others[collision_i]
+
+                    if sprite is other:
                         continue
-                    # deal with the collision effects
+                    elif sprite == other:
+                        assert False, "Huh, interesting"
+
                     if score:
                         self.score += score
-                    if switch:
-                        # CHECKME: this is not a bullet-proof way, but seems to work
-                        if s2 not in self.kill_list:
-                            effect(s2, s1, self, **kwargs)
-                    else:
-                        # CHECKME: this is not a bullet-proof way, but seems to work
-                        if s1 not in self.kill_list:
-                            effect(s1, s2, self, **kwargs)
+                    if sprite not in self.kill_list:
+                        effect(sprite, other, self, **kwargs)
 
 
     def getPossibleActions(self) -> Dict[str, Action]:
@@ -595,10 +589,10 @@ class BasicGame:
         games that are human playable. Key presses are easy to reason about,
         even if we do not actually use them.
         """
-        assert action in self.getPossibleActions().values(), \
-          'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
         if isinstance(action, int):
             action = Action(action)
+        assert action in self.getPossibleActions().values(), \
+          'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
 
         if self.ended:
             logging.warning('Action performed while game ended')
@@ -757,6 +751,9 @@ class VGDLSprite:
             self.orientation = np.zeros((2,))
         else:
             self.orientation = v / np.linalg.norm(v)
+        if any(np.isnan(self.orientation)):
+            print("NAN ALERT")
+            import ipdb; ipdb.set_trace()
 
 
     @property

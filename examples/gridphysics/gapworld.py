@@ -6,7 +6,7 @@ import vgdl.mdp
 from vgdl.ontology import MovingAvatar, RIGHT
 import vgdl.interfaces
 from vgdl.interfaces.pybrain import VGDLPybrainEnvironment, VGDLPybrainTask
-from vgdl.state import AbsoluteObserver, Observation
+from vgdl.state import AbsoluteObserver, KeyValueObservation
 
 
 class RightMovingJumpingAvatar(MovingAvatar):
@@ -16,11 +16,13 @@ class RightMovingJumpingAvatar(MovingAvatar):
 
     @classmethod
     def declare_possible_actions(cls):
+        # TODO port
+        from vgdl.core import Action
         from pygame.locals import K_RIGHT, K_SPACE
         actions = {}
-        actions["RIGHT"] = K_RIGHT
-        actions["SPACE"] = K_SPACE
-        actions["NO_OP"] = 0
+        actions["RIGHT"] = Action(K_RIGHT)
+        actions["SPACE"] = Action(K_SPACE)
+        actions["NO_OP"] = Action()
         return actions
 
 
@@ -47,7 +49,7 @@ class GapworldObserver(AbsoluteObserver):
     def get_observation(self):
         avatar = self._game.getAvatars()[0]
         position = self._rect_to_pos(avatar.rect)
-        obs = Observation(x=position[0])
+        obs = KeyValueObservation(x=position[0])
         return obs
 
 
