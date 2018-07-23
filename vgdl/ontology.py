@@ -89,10 +89,14 @@ class ContinuousPhysics(GridPhysics):
     def passiveMovement(self, sprite):
         if not hasattr(sprite, 'orientation'):
             return
-        sprite._updatePos(sprite.orientation, sprite.speed)
+        # sprite._updatePos(sprite.orientation, sprite.speed)
+        # if self.gravity > 0 and sprite.mass > 0:
+        #     sprite.passive_force = (0, self.gravity * sprite.mass)
+        #     self.activeMovement(sprite, sprite.passive_force)
         if self.gravity > 0 and sprite.mass > 0:
             sprite.passive_force = (0, self.gravity * sprite.mass)
             self.activeMovement(sprite, sprite.passive_force)
+
 
     def activeMovement(self, sprite, force, speed=None):
         """
@@ -737,9 +741,18 @@ class MarioAvatar(OrientedAvatar):
         else:
             # Not walking, should actively halt
             force = (horizontal_stopping_force, 0)
+        print(game.time, self.velocity, self.rect.topleft, self.passive_force)
 
         self.physics.activeMovement(self, force)
-        VGDLSprite.update(self, game)
+
+        # Body of VGDLSprite.update
+        self.lastrect = self.rect
+        self.lastmove += 1
+        if not self.is_static and not self.only_active:
+            self.physics.passiveMovement(self)
+
+        self._updatePos(self.orientation, self.speed)
+
 
     @classmethod
     def declare_possible_actions(cls):
@@ -905,21 +918,32 @@ def wallBounce(sprite, partner, game, friction=0):
         sprite.orientation = (sprite.orientation[0], -sprite.orientation[1])
 
 def wallStop(sprite, partner, game, friction=0):
-    """ Stop just in front of the wall, removing that velocity component,
-    but possibly sliding along it. """
-    if not oncePerStep(sprite, game, 'laststop'):
-        return
+    """
+    It is important both horizontal and vertical collisions are resolved.
+    Vertical collisions keep gravity from building up.
+    """
+    # if not oncePerStep(sprite, game, 'laststop'):
+    #     return
 
     # We will revise the velocity used for the last movement
     old_delta = Vector2(sprite.rect.topleft) - Vector2(sprite.lastrect.topleft)
+    collision_vec = Vector2(partner.rect.center) - Vector2(partner.rect.center)
 
     # Horizontal collision
-    if abs(sprite.rect.centerx - partner.rect.centerx) > abs(sprite.rect.centery - partner.rect.centery):
+    # Assume you need horizontal velocity to effect a horizontal collision
+    if abs(sprite.rect.centerx - partner.rect.centerx) > abs(sprite.rect.centery - partner.rect.centery) \
+            and abs(old_delta[0]) >= abs(old_delta[1]):
+        if not oncePerStep(sprite, game, 'last_horizontal_stop'):
+            return
+
         # velocity = (0, sprite.velocity[1] * (1. - friction))
         if sprite.velocity[0] > 0:
             x_clip = partner.rect.left - sprite.rect.right
         else:
             x_clip = partner.rect.right - sprite.rect.left
+
+        if old_delta.x == 0:
+            import ipdb; ipdb.set_trace()
 
         rescale = (old_delta.x + x_clip) / old_delta.x
         new_delta = old_delta * rescale
@@ -927,11 +951,16 @@ def wallStop(sprite, partner, game, friction=0):
         sprite.passive_force = (0, sprite.passive_force[1])
         velocity = (0, sprite.velocity[1])
     else:
+        if not oncePerStep(sprite, game, 'last_vertical_stop'):
+            return
         # Downward motion, so downward collision
         if sprite.velocity[1] > 0:
             y_clip = partner.rect.top - sprite.rect.bottom
         else:
             y_clip = partner.rect.bottom - sprite.rect.top
+
+        if old_delta.y == 0:
+            import ipdb; ipdb.set_trace()
 
         rescale = (old_delta.y + y_clip) / old_delta.y
         new_delta = old_delta * rescale
@@ -939,6 +968,13 @@ def wallStop(sprite, partner, game, friction=0):
         # Counter-act passive movement that has been applied earlier
         sprite.passive_force = (sprite.passive_force[0], 0)
         velocity = (sprite.velocity[0], 0)
+
+    print(game.time, partner)
+
+    if rescale > 1:
+        import ipdb; ipdb.set_trace()
+    if new_delta[1]:
+        import ipdb; ipdb.set_trace()
 
     sprite.rect = sprite.lastrect.move(new_delta)
     sprite.update_velocity(velocity)

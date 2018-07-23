@@ -638,9 +638,13 @@ class BasicGame:
 
         if not self.headless:
             self._drawAll()
-            pygame.transform.scale(self.screen, self.display_size, self.display)
-            pygame.display.update()
+            self._update_display()
             # TODO once dirtyrects are back in, reset them here
+
+
+    def _update_display(self):
+        pygame.transform.scale(self.screen, self.display_size, self.display)
+        pygame.display.update()
 
 
 class VGDLSprite:
@@ -729,8 +733,9 @@ class VGDLSprite:
             self.physics.passiveMovement(self)
 
     def _updatePos(self, orientation, speed=None):
+        # TODO use self.speed etc
         if speed is None:
-            velocity = self.velocity
+            velocity = Vector2(orientation) * self.speed
         else:
             velocity = Vector2(self.orientation) * speed
         # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
