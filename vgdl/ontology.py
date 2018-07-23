@@ -44,6 +44,8 @@ RIGHT = Direction((1, 0))
 
 BASEDIRS = [UP, LEFT, DOWN, RIGHT]
 
+NOOP = Action()
+
 # ---------------------------------------------------------------------
 #     Types of physics
 # ---------------------------------------------------------------------
@@ -54,6 +56,11 @@ class GridPhysics(Physics):
     """ Define actions and key-mappings for grid-world dynamics. """
 
     def passiveMovement(self, sprite):
+        """
+        TODO This can be slightly dangerous and should probably be refactored.
+        All sprites with an orientation and speed and GridPhysics will automatically
+        move in that direction, passively.
+        """
         if sprite.speed is None:
             speed = 1
         else:
@@ -78,44 +85,37 @@ class GridPhysics(Physics):
 
 
 class ContinuousPhysics(GridPhysics):
-    gravity = 0.
-    friction = 0.02
-
     def passiveMovement(self, sprite):
-        if sprite.speed != 0 and hasattr(sprite, 'orientation'):
-            sprite._updatePos(sprite.orientation, sprite.speed)
-            if self.gravity > 0 and sprite.mass > 0:
-                self.activeMovement(sprite, (0, self.gravity * sprite.mass))
-            sprite.speed *= (1 - self.friction)
+        if not hasattr(sprite, 'orientation'):
+            return
+        sprite._updatePos(sprite.orientation, sprite.speed)
+        if self.gravity > 0 and sprite.mass > 0:
+            sprite.passive_force = (0, self.gravity * sprite.mass)
+            self.activeMovement(sprite, sprite.passive_force)
 
     def activeMovement(self, sprite, force, speed=None):
-        """ Here the assumption is that the controls determine the direction of
-        acceleration of the sprite. """
+        """
+        Updates sprite.orientation and sprite.speed, which together make up
+        the sprite's velocity.
+        """
         if speed is None:
             speed = sprite.speed
         force = np.array(force)
         orientation = np.array(sprite.orientation)
         speed = np.array(speed)
 
-        # Velocity is stored in the unit vector orientation and
-        # the scalar speed separately
         old_velocity = orientation * speed
         velocity = old_velocity + force / sprite.mass
 
-        # This is now of unit length
-        sprite.orientation = velocity / np.linalg.norm(velocity)
-        sprite.speed = np.linalg.norm(velocity)
+        sprite.update_velocity(velocity)
+
 
     def distance(self, r1, r2):
         """ Continuous physics use Euclidean distances. """
-        return sqrt((r1.top - r2.top) ** 2
-                    + (r1.left - r2.left) ** 2)
-
-class NoFrictionPhysics(ContinuousPhysics):
-    friction = 0
+        return np.linalg.norm(np.array(r1.topleft) - np.array(r2.topleft))
 
 class GravityPhysics(ContinuousPhysics):
-    gravity = 0.5
+    gravity = 1
 
 
 # ---------------------------------------------------------------------
@@ -465,7 +465,7 @@ class MovingAvatar(VGDLSprite, Avatar):
         actions["NO_OP"] = Action()
         return actions
 
-    def _readAction(self, game):
+    def _readAction(self, game) -> Action:
         """
         An action can consist of multiple key presses. The action corresponding
         to the most key presses will be returned. Ties are broken arbitrarily.
@@ -481,12 +481,11 @@ class MovingAvatar(VGDLSprite, Avatar):
                 if key_combo in self.keys_to_action:
                     return self.keys_to_action[key_combo]
 
-        assert False
 
     def update(self, game):
         VGDLSprite.update(self, game)
         action = self._readAction(game)
-        if action:
+        if not action == NOOP:
             self.physics.activeMovement(self, action)
 
 class HorizontalAvatar(MovingAvatar):
@@ -698,34 +697,55 @@ class InertialAvatar(OrientedAvatar):
     def update(self, game):
         MovingAvatar.update(self, game)
 
-class MarioAvatar(InertialAvatar):
-    """ Mario can have two states: in contact with the ground, or in parabolic flight. """
+class MarioAvatar(OrientedAvatar):
+    """
+    Inertia only works when airborne. There is no inertia when walking.
+    """
     physicstype = GravityPhysics
     draw_arrow = False
     strength = 10
     airsteering = False
 
+    # TODO seriously take this out of here
+    passive_force = (0, 0)
+
     def update(self, game):
-        action = self._readAction(game)
-        acceleration = action.as_acceleration()
         from pygame.locals import K_SPACE
 
-        # If in the air with no vertical velocity, allow jumping
-        if game.keystate[K_SPACE] and self.orientation[1] == 0:
-            acceleration = (acceleration[0] * sqrt(self.strength), -self.strength)
-        elif self.orientation[1] == 0 or self.airsteering:
-            acceleration = (acceleration[0] * sqrt(self.strength), 0)
-        else:
-            acceleration = (0, 0)
+        action = self._readAction(game)
+        # Force will just have a horizontal component as we do not allow up/down
+        force = action.as_force()
 
-        self.physics.activeMovement(self, acceleration)
+        # You have to keep exerting force to keep moving
+        horizontal_stopping_force = -self.velocity[0] / self.mass
+
+        if K_SPACE in action.keys and self.passive_force[1] == 0:
+            # Not airborne and attempting to jump
+            force = (horizontal_stopping_force + force[0] * sqrt(self.strength), -self.strength)
+        elif self.passive_force[1] != 0 and self.airsteering:
+            # Airborne and actively steering, horizontal stopping force is less
+            horizontal_stopping_force = - np.sign(self.velocity[0]) * np.sqrt(np.abs(self.velocity[0] / self.mass))
+            force = (horizontal_stopping_force + force[0] * sqrt(self.strength), 0)
+        elif self.passive_force[1] != 0 and not self.airsteering:
+            # Airborne and not allowed to steer, so just let fly
+            force = (0, 0)
+        elif self.passive_force[1] == 0 and force[0]:
+            # Actively walking along, you want the net velocity to be fixed
+            force = (horizontal_stopping_force + force[0] * sqrt(self.strength), 0)
+        else:
+            # Not walking, should actively halt
+            force = (horizontal_stopping_force, 0)
+
+        self.physics.activeMovement(self, force)
         VGDLSprite.update(self, game)
 
     @classmethod
     def declare_possible_actions(cls):
-        from pygame.locals import K_SPACE
+        from pygame.locals import K_SPACE, K_RIGHT, K_LEFT
         actions = super().declare_possible_actions()
         actions['SPACE'] = Action(K_SPACE)
+        actions['SPACE_RIGHT'] = Action(K_SPACE, K_RIGHT)
+        actions['SPACE_LEFT'] = Action(K_SPACE, K_LEFT)
         return actions
 
 
@@ -888,12 +908,17 @@ def wallStop(sprite, partner, game, friction=0):
     if not oncePerStep(sprite, game, 'laststop'):
         return
     stepBack(sprite, partner, game)
+    # Horizontal collision
     if abs(sprite.rect.centerx - partner.rect.centerx) > abs(sprite.rect.centery - partner.rect.centery):
-        sprite.orientation = (0, sprite.orientation[1] * (1. - friction))
+        velocity = (0, sprite.velocity[1] * (1. - friction))
     else:
-        sprite.orientation = (sprite.orientation[0] * (1. - friction), 0)
-    sprite.speed = vectNorm(sprite.orientation) * sprite.speed
-    sprite.orientation = unitVector(sprite.orientation)
+        # Counter-act passive movement that has been applied earlier
+        sprite.passive_force = (sprite.passive_force[0], 0)
+        velocity = (sprite.velocity[0], 0)
+        # velocity = (sprite.velocity[0] * (1. - friction), 0)
+        # orientation = sprite.velocity
+
+    sprite.update_velocity(velocity)
 
 def killIfSlow(sprite, partner, game, limitspeed=1):
     """ Take a decision based on relative speed. """
@@ -902,8 +927,7 @@ def killIfSlow(sprite, partner, game, limitspeed=1):
     elif partner.is_static:
         relspeed = sprite.speed
     else:
-        relspeed = vectNorm((sprite._velocity()[0] - partner._velocity()[0],
-                             sprite._velocity()[1] - partner._velocity()[1]))
+        relSpeed = np.linalg.norm(sprite.velocity - partner.velocity)
     if relspeed < limitspeed:
         killSprite(sprite, partner, game)
 

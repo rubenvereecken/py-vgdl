@@ -10,6 +10,7 @@ from .tools import Node, indentTreeParser, PrettyDict
 from collections import defaultdict, UserDict
 from .tools import roundedPoints
 import math
+import numpy as np
 import os
 import sys
 import copy
@@ -33,6 +34,7 @@ class SpriteRegistry:
         self.sprite_keys: List[str] = []
 
         # Sprite instances, each has a unique id
+        # Sprites are grouped by their primary stype, but they can have more
         self._sprites_by_key = defaultdict(list)
         self._sprite_by_id = {}
 
@@ -105,6 +107,12 @@ class SpriteRegistry:
             return self._sprites_by_key[key]
         else:
             return [ sprite for sprite in self._sprites_by_key[key] if sprite.alive ]
+
+    def with_stype(self, stype):
+        if stype in self.groups():
+            return self.group(stype)
+        else:
+            return [s for sprites in self.groups().values() for s in sprites if stype in s.stypes]
 
     def get_state(self) -> dict:
         def _sprite_state(sprite):
@@ -205,7 +213,7 @@ class Action:
     def __init__(self, *args):
         self.keys = tuple(sorted(args))
 
-    def as_acceleration(self):
+    def as_force(self):
         """
         Directional keys are used to encode directions.
         Opposite directions cancel eachother out.
@@ -218,7 +226,8 @@ class Action:
     def __repr__(self):
         import pygame.key
         _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
-        return 'Action({})'.format(','.join(_key_name(k) for k in self.keys))
+        key_rep = ','.join(_key_name(k) for k in self.keys)
+        return 'Action({})'.format(key_rep or 'noop')
 
     def __eq__(self, other):
         return self.keys == other.keys
@@ -252,9 +261,9 @@ class BasicGame:
 
         self.sprite_registry = sprite_registry
 
-        # z-level of sprite types (in case of overlap)
-        self.sprite_order  = ['wall', 'avatar']
-        # which sprite types (abstract or not) are singletons?
+        # z-level of sprite types (in case of overlap), populated by parser
+        self.sprite_order = []
+        # which sprite types (abstract or not) are singletons? By parser
         self.singletons = []
         # used for erasing dead sprites
         self.kill_list = []
@@ -344,6 +353,17 @@ class BasicGame:
             # TODO there will probably be need for a separate background surface
             # once dirty optimisation is back in
 
+
+    def _resize_display(self, target_size):
+        # Doesn't actually work on quite a few systems
+        # https://github.com/pygame/pygame/issues/201
+        w_factor = target_size[0] / self.display_size[0]
+        h_factor = target_size[1] / self.display_size[1]
+        factor = min(w_factor, h_factor)
+
+        self.display_size = (int(self.display_size[0] * factor),
+                             int(self.display_size[1] * factor))
+        self.display = pygame.display.set_mode(self.display_size, pygame.RESIZABLE, 32)
 
     def reset(self):
         self.score = 0
@@ -509,20 +529,14 @@ class BasicGame:
                 del self.lastcollisions[key]
 
     def _eventHandling(self):
-        self.lastcollisions = {}
+        self.lastcollisions: Dict[str, Tuple['VGDLSprite',int]] = {}
         ss = self.lastcollisions
         for g1, g2, effect, kwargs in self.collision_eff:
             # build the current sprite lists (if not yet available)
             for g in [g1, g2]:
                 if g not in ss:
-                    if g in self.sprite_registry.groups():
-                        tmp = self.sprite_registry.groups()[g]
-                    else:
-                        tmp = []
-                        for key, v in self.sprite_registry.groups().items():
-                            if v and g in v[0].stypes:
-                                tmp.extend(v)
-                    ss[g] = (tmp, len(tmp))
+                    sprites = self.sprite_registry.with_stype(g)
+                    ss[g] = (sprites, len(sprites))
 
             # special case for end-of-screen
             if g2 == "EOS":
@@ -532,13 +546,10 @@ class BasicGame:
                         effect(s1, None, self, **kwargs)
                 continue
 
-            # iterate over the shorter one
-            ss1, l1 = ss[g1]
-            ss2, l2 = ss[g2]
-            if l1 < l2:
-                shortss, longss, switch = ss1, ss2, False
-            else:
-                shortss, longss, switch = ss2, ss1, True
+            # TODO care about efficiency again sometime, test short sprite list vs long
+            # Can do this by sorting first?
+            sprites, _ = ss[g1]
+            others, _ = ss[g2]
 
             # score argument is not passed along to the effect function
             score = 0
@@ -547,23 +558,19 @@ class BasicGame:
                 score = kwargs['scoreChange']
                 del kwargs['scoreChange']
 
-            # do collision detection
-            for s1 in shortss:
-                for ci in s1.rect.collidelistall(longss):
-                    s2 = longss[ci]
-                    if s1 == s2:
+            for sprite in sprites:
+                for collision_i in sprite.rect.collidelistall(others):
+                    other = others[collision_i]
+
+                    if sprite is other:
                         continue
-                    # deal with the collision effects
+                    elif sprite == other:
+                        assert False, "Huh, interesting"
+
                     if score:
                         self.score += score
-                    if switch:
-                        # CHECKME: this is not a bullet-proof way, but seems to work
-                        if s2 not in self.kill_list:
-                            effect(s2, s1, self, **kwargs)
-                    else:
-                        # CHECKME: this is not a bullet-proof way, but seems to work
-                        if s1 not in self.kill_list:
-                            effect(s1, s2, self, **kwargs)
+                    if sprite not in self.kill_list:
+                        effect(sprite, other, self, **kwargs)
 
 
     def getPossibleActions(self) -> Dict[str, Action]:
@@ -582,6 +589,8 @@ class BasicGame:
         games that are human playable. Key presses are easy to reason about,
         even if we do not actually use them.
         """
+        if isinstance(action, int):
+            action = Action(action)
         assert action in self.getPossibleActions().values(), \
           'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
         if isinstance(action, int):
@@ -595,10 +604,13 @@ class BasicGame:
         self.time += 1
 
         # Flush events
+        # Getting events like this keeps things rolling, otherwise use pygame.event.pump
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.VIDEORESIZE:
+                self._resize_display(event.size)
 
         # Update Keypresses
         # Agents are updated during the update routine in their ontology files, this demends on BasicGame.keystate
@@ -718,16 +730,33 @@ class VGDLSprite:
     def _updatePos(self, orientation, speed=None):
         if speed is None:
             speed = self.speed
-        if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
-            self.rect = self.rect.move((orientation[0]*speed, orientation[1]*speed))
+        # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
+        if not(self.cooldown > self.lastmove):
+            # TODO use self.velocity
+            self.rect = self.rect.move(np.array(orientation) * speed)
             self.lastmove = 0
 
-    def _velocity(self):
-        """ Current velocity vector. """
+    @property
+    def velocity(self):
         if self.speed is None or self.speed==0 or not hasattr(self, 'orientation'):
-            return (0,0)
+            return np.zeros((2,))
         else:
-            return (self.orientation[0]*self.speed, self.orientation[1]*self.speed)
+            return np.array(self.orientation) * self.speed
+
+
+    def update_velocity(self, v):
+        assert len(v) == 2
+        v = np.array(v)
+        self.speed = np.linalg.norm(v)
+        # Orientation is of unit length except when it isn't
+        if self.speed == 0:
+            self.orientation = np.zeros((2,))
+        else:
+            self.orientation = v / np.linalg.norm(v)
+        if any(np.isnan(self.orientation)):
+            print("NAN ALERT")
+            import ipdb; ipdb.set_trace()
+
 
     @property
     def lastdirection(self):
