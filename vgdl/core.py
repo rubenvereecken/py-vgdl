@@ -214,13 +214,13 @@ class Action:
     def __init__(self, *args):
         self.keys = tuple(sorted(args))
 
-    def as_force(self):
+    def as_vector(self):
         """
         Directional keys are used to encode directions.
         Opposite directions cancel eachother out.
         """
         from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
-        return ( -1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
+        return Vector2( -1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
                  -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys) )
 
 
@@ -679,8 +679,7 @@ class VGDLSprite:
 
         from .ontology import GridPhysics
         self.physicstype      = physicstype or self.physicstype or GridPhysics
-        self.physics          = self.physicstype()
-        self.physics.gridsize = size
+        self.physics          = self.physicstype(size)
         self.speed            = speed or self.speed
         self.cooldown         = cooldown or self.cooldown
         self.img              = 0
@@ -742,7 +741,7 @@ class VGDLSprite:
         if speed is None:
             velocity = Vector2(orientation) * self.speed
         else:
-            velocity = Vector2(self.orientation) * speed
+            velocity = Vector2(orientation) * speed
         # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
         if not(self.cooldown > self.lastmove):
             # TODO use self.velocity
@@ -750,7 +749,7 @@ class VGDLSprite:
             self.lastmove = 0
 
     @property
-    def velocity(self) -> 'Vector2':
+    def velocity(self) -> Vector2:
         if self.speed is None or self.speed==0 or not hasattr(self, 'orientation'):
             return Vector2(0,0)
         else:

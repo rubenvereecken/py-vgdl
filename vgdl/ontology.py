@@ -55,6 +55,8 @@ class Physics:
 
 class GridPhysics(Physics):
     """ Define actions and key-mappings for grid-world dynamics. """
+    def __init__(self, gridsize):
+        self.gridsize = gridsize
 
     def passiveMovement(self, sprite):
         """
@@ -69,7 +71,9 @@ class GridPhysics(Physics):
         if speed != 0 and hasattr(sprite, 'orientation'):
             sprite._updatePos(sprite.orientation, speed * self.gridsize[0])
 
-    def activeMovement(self, sprite, action, speed=None):
+    def activeMovement(self, sprite, action: Union[Action,Tuple,Vector2], speed=None):
+        if isinstance(action, Action):
+            action = action.as_vector()
         if speed is None:
             if sprite.speed is None:
                 speed = 1
@@ -89,6 +93,9 @@ class ContinuousPhysics(GridPhysics):
     def passiveMovement(self, sprite):
         if not hasattr(sprite, 'orientation'):
             return
+        # TODO really clean up and unify the different physics interfaces
+        # For example, they call _updatePos differently
+
         # sprite._updatePos(sprite.orientation, sprite.speed)
         # if self.gravity > 0 and sprite.mass > 0:
         #     sprite.passive_force = (0, self.gravity * sprite.mass)
@@ -444,6 +451,7 @@ class MovingAvatar(VGDLSprite, Avatar):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # TODO this is actually quite ugly
         possible_actions = self.__class__.declare_possible_actions()
         self.keys_to_action = {tuple(sorted(a.keys)): a for a in possible_actions.values()}
 
@@ -720,7 +728,7 @@ class MarioAvatar(OrientedAvatar):
 
         action = self._readAction(game)
         # Force will just have a horizontal component as we do not allow up/down
-        force = action.as_force()
+        force = action.as_vector()
 
         # You have to keep exerting force to keep moving
         horizontal_stopping_force = -self.velocity[0] / self.mass
@@ -729,8 +737,7 @@ class MarioAvatar(OrientedAvatar):
             # Not airborne and attempting to jump
             force = (horizontal_stopping_force + force[0] * sqrt(self.strength), -self.strength)
         elif self.passive_force[1] != 0 and self.airsteering:
-            # Airborne and actively steering, horizontal stopping force is less
-            horizontal_stopping_force = - np.sign(self.velocity[0]) * np.sqrt(np.abs(self.velocity[0] / self.mass))
+            # Airborne and actively steering
             force = (horizontal_stopping_force + force[0] * sqrt(self.strength), 0)
         elif self.passive_force[1] != 0 and not self.airsteering:
             # Airborne and not allowed to steer, so just let fly
