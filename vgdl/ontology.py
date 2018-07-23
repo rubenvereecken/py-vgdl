@@ -8,6 +8,7 @@ import numpy as np
 from math import sqrt
 import itertools
 import pygame
+from pygame.math import Vector2
 import logging
 from typing import NewType, Optional, Union, Dict, List, Tuple
 
@@ -88,10 +89,14 @@ class ContinuousPhysics(GridPhysics):
     def passiveMovement(self, sprite):
         if not hasattr(sprite, 'orientation'):
             return
-        sprite._updatePos(sprite.orientation, sprite.speed)
+        # sprite._updatePos(sprite.orientation, sprite.speed)
+        # if self.gravity > 0 and sprite.mass > 0:
+        #     sprite.passive_force = (0, self.gravity * sprite.mass)
+        #     self.activeMovement(sprite, sprite.passive_force)
         if self.gravity > 0 and sprite.mass > 0:
             sprite.passive_force = (0, self.gravity * sprite.mass)
             self.activeMovement(sprite, sprite.passive_force)
+
 
     def activeMovement(self, sprite, force, speed=None):
         """
@@ -99,12 +104,11 @@ class ContinuousPhysics(GridPhysics):
         the sprite's velocity.
         """
         if speed is None:
-            speed = sprite.speed
-        force = np.array(force)
-        orientation = np.array(sprite.orientation)
-        speed = np.array(speed)
+            old_velocity = sprite.velocity
+        else:
+            old_velocity = sprite.orientation * speed
 
-        old_velocity = orientation * speed
+        force = Vector2(force)
         velocity = old_velocity + force / sprite.mass
 
         sprite.update_velocity(velocity)
@@ -112,7 +116,7 @@ class ContinuousPhysics(GridPhysics):
 
     def distance(self, r1, r2):
         """ Continuous physics use Euclidean distances. """
-        return np.linalg.norm(np.array(r1.topleft) - np.array(r2.topleft))
+        return (Vector2(r1.topleft) - Vector2(r2.topleft)).normalize()
 
 class GravityPhysics(ContinuousPhysics):
     gravity = 1
@@ -481,6 +485,8 @@ class MovingAvatar(VGDLSprite, Avatar):
                 if key_combo in self.keys_to_action:
                     return self.keys_to_action[key_combo]
 
+        assert False, 'No valid actions encountered, consider allowing NO_OP'
+
 
     def update(self, game):
         VGDLSprite.update(self, game)
@@ -737,7 +743,15 @@ class MarioAvatar(OrientedAvatar):
             force = (horizontal_stopping_force, 0)
 
         self.physics.activeMovement(self, force)
-        VGDLSprite.update(self, game)
+
+        # Body of VGDLSprite.update
+        self.lastrect = self.rect
+        self.lastmove += 1
+        if not self.is_static and not self.only_active:
+            self.physics.passiveMovement(self)
+
+        self._updatePos(self.orientation, self.speed)
+
 
     @classmethod
     def declare_possible_actions(cls):
@@ -903,21 +917,72 @@ def wallBounce(sprite, partner, game, friction=0):
         sprite.orientation = (sprite.orientation[0], -sprite.orientation[1])
 
 def wallStop(sprite, partner, game, friction=0):
-    """ Stop just in front of the wall, removing that velocity component,
-    but possibly sliding along it. """
-    if not oncePerStep(sprite, game, 'laststop'):
+    """
+    It is important both horizontal and vertical collisions are resolved.
+    Vertical collisions keep gravity from building up.
+    """
+    # if not oncePerStep(sprite, game, 'laststop'):
+    #     return
+
+    # We will revise the velocity used for the last movement
+    old_delta = Vector2(sprite.rect.topleft) - Vector2(sprite.lastrect.topleft)
+    collision_vec = Vector2(partner.rect.center) - Vector2(sprite.rect.center)
+    lastcollision_vec = Vector2(partner.rect.center) - Vector2(sprite.lastrect.center)
+
+    # Probably a duplicate, because delta is never 0 with a collision
+    if old_delta == Vector2(0,0):
         return
-    stepBack(sprite, partner, game)
+
+    same_vertical = partner.rect.left < sprite.rect.right < partner.rect.right or \
+        partner.rect.left < sprite.rect.left < partner.rect.right
+
     # Horizontal collision
-    if abs(sprite.rect.centerx - partner.rect.centerx) > abs(sprite.rect.centery - partner.rect.centery):
-        velocity = (0, sprite.velocity[1] * (1. - friction))
+    # Assume you need horizontal velocity to effect a horizontal collision
+    if abs(lastcollision_vec.x) > abs(lastcollision_vec.y):
+        if not oncePerStep(sprite, game, 'last_horizontal_stop'):
+            return
+
+        # velocity = (0, sprite.velocity[1] * (1. - friction))
+        if sprite.velocity[0] > 0:
+            x_clip = partner.rect.left - sprite.rect.right
+        else:
+            x_clip = partner.rect.right - sprite.rect.left
+
+        if old_delta.x == 0:
+            import ipdb; ipdb.set_trace()
+
+        # TODO clean up unused factors
+        rescale = (old_delta.x + x_clip) / old_delta.x
+        # new_delta = old_delta * rescale
+        new_delta = old_delta + (x_clip, 0)
+
+        sprite.passive_force = (0, sprite.passive_force[1])
+        velocity = (0, sprite.velocity[1])
+        y_clip = None
     else:
+        if not oncePerStep(sprite, game, 'last_vertical_stop'):
+            return
+        # Downward motion, so downward collision
+        if sprite.velocity[1] > 0:
+            y_clip = partner.rect.top - sprite.rect.bottom
+        else:
+            y_clip = partner.rect.bottom - sprite.rect.top
+
+        if old_delta.y == 0:
+            import ipdb; ipdb.set_trace()
+
+        rescale = (old_delta.y + y_clip) / old_delta.y
+        # new_delta = old_delta.elementwise() * (1, rescale)
+        # new_delta = old_delta * rescale
+        new_delta = old_delta + (0, y_clip)
+
         # Counter-act passive movement that has been applied earlier
         sprite.passive_force = (sprite.passive_force[0], 0)
         velocity = (sprite.velocity[0], 0)
-        # velocity = (sprite.velocity[0] * (1. - friction), 0)
-        # orientation = sprite.velocity
+        # TODO
+        x_clip = None
 
+    sprite.rect = sprite.lastrect.move(new_delta)
     sprite.update_velocity(velocity)
 
 def killIfSlow(sprite, partner, game, limitspeed=1):

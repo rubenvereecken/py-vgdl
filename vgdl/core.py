@@ -5,6 +5,7 @@ Video game description language -- parser, framework and core game classes.
 '''
 
 import pygame
+from pygame.math import Vector2
 import random
 from .tools import Node, indentTreeParser, PrettyDict
 from collections import defaultdict, UserDict
@@ -593,6 +594,8 @@ class BasicGame:
             action = Action(action)
         assert action in self.getPossibleActions().values(), \
           'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
+        if isinstance(action, int):
+            action = Action(action)
 
         if self.ended:
             logging.warning('Action performed while game ended')
@@ -635,9 +638,18 @@ class BasicGame:
 
         if not self.headless:
             self._drawAll()
-            pygame.transform.scale(self.screen, self.display_size, self.display)
-            pygame.display.update()
+            self._update_display()
             # TODO once dirtyrects are back in, reset them here
+
+
+    def _update_display(self):
+        pygame.transform.scale(self.screen, self.display_size, self.display)
+        pygame.display.update()
+
+    def _force_display(self):
+        self._clearAll()
+        self._drawAll()
+        self._update_display()
 
 
 class VGDLSprite:
@@ -726,50 +738,37 @@ class VGDLSprite:
             self.physics.passiveMovement(self)
 
     def _updatePos(self, orientation, speed=None):
+        # TODO use self.speed etc
         if speed is None:
-            speed = self.speed
+            velocity = Vector2(orientation) * self.speed
+        else:
+            velocity = Vector2(self.orientation) * speed
         # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
         if not(self.cooldown > self.lastmove):
             # TODO use self.velocity
-            self.rect = self.rect.move(np.array(orientation) * speed)
+            self.rect = self.rect.move(velocity)
             self.lastmove = 0
 
     @property
-    def velocity(self):
+    def velocity(self) -> 'Vector2':
         if self.speed is None or self.speed==0 or not hasattr(self, 'orientation'):
-            return np.zeros((2,))
+            return Vector2(0,0)
         else:
-            return np.array(self.orientation) * self.speed
+            return Vector2(self.orientation) * self.speed
 
 
     def update_velocity(self, v):
         assert len(v) == 2
-        v = np.array(v)
-        self.speed = np.linalg.norm(v)
+        v = Vector2(v)
+        self.speed = v.length()
         # Orientation is of unit length except when it isn't
         if self.speed == 0:
-            self.orientation = np.zeros((2,))
+            self.orientation = Vector2(0,0)
         else:
-            self.orientation = v / np.linalg.norm(v)
-=======
-        else:
-            return np.array(self.orientation) * self.speed
-
-
-    def update_velocity(self, v):
-        assert len(v) == 2
-        v = np.array(v)
-        self.speed = np.linalg.norm(v)
-        # Orientation is of unit length except when it isn't
-        if self.speed == 0:
-            self.orientation = np.zeros((2,))
-        else:
-            self.orientation = v / np.linalg.norm(v)
+            self.orientation = v.normalize()
         if any(np.isnan(self.orientation)):
             print("NAN ALERT")
             import ipdb; ipdb.set_trace()
-
->>>>>>> cd67bfbf177e92dbc137786c06120e4182d50891
 
 
     @property
