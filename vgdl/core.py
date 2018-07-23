@@ -5,6 +5,7 @@ Video game description language -- parser, framework and core game classes.
 '''
 
 import pygame
+from pygame.math import Vector2
 import random
 from .tools import Node, indentTreeParser, PrettyDict
 from collections import defaultdict, UserDict
@@ -731,7 +732,7 @@ class VGDLSprite:
         if speed is None:
             velocity = self.velocity
         else:
-            velocity = np.array(self.orientation) * speed
+            velocity = Vector2(self.orientation) * speed
         # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
         if not(self.cooldown > self.lastmove):
             # TODO use self.velocity
@@ -739,22 +740,22 @@ class VGDLSprite:
             self.lastmove = 0
 
     @property
-    def velocity(self):
+    def velocity(self) -> 'Vector2':
         if self.speed is None or self.speed==0 or not hasattr(self, 'orientation'):
-            return np.zeros((2,))
+            return Vector2(0,0)
         else:
-            return np.array(self.orientation) * self.speed
+            return Vector2(self.orientation) * self.speed
 
 
     def update_velocity(self, v):
         assert len(v) == 2
-        v = np.array(v)
-        self.speed = np.linalg.norm(v)
+        v = Vector2(v)
+        self.speed = v.length()
         # Orientation is of unit length except when it isn't
         if self.speed == 0:
-            self.orientation = np.zeros((2,))
+            self.orientation = Vector2(0,0)
         else:
-            self.orientation = v / np.linalg.norm(v)
+            self.orientation = v.normalize()
         if any(np.isnan(self.orientation)):
             print("NAN ALERT")
             import ipdb; ipdb.set_trace()

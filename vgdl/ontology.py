@@ -100,12 +100,11 @@ class ContinuousPhysics(GridPhysics):
         the sprite's velocity.
         """
         if speed is None:
-            speed = sprite.speed
-        force = np.array(force)
-        orientation = np.array(sprite.orientation)
-        speed = np.array(speed)
+            old_velocity = sprite.velocity
+        else:
+            old_velocity = sprite.orientation * speed
 
-        old_velocity = orientation * speed
+        force = Vector2(force)
         velocity = old_velocity + force / sprite.mass
 
         sprite.update_velocity(velocity)
@@ -113,7 +112,7 @@ class ContinuousPhysics(GridPhysics):
 
     def distance(self, r1, r2):
         """ Continuous physics use Euclidean distances. """
-        return np.linalg.norm(np.array(r1.topleft) - np.array(r2.topleft))
+        return (Vector2(r1.topleft) - Vector2(r2.topleft)).normalize()
 
 class GravityPhysics(ContinuousPhysics):
     gravity = 1
@@ -481,6 +480,8 @@ class MovingAvatar(VGDLSprite, Avatar):
             for key_combo in itertools.combinations(active_keys, num_keys):
                 if key_combo in self.keys_to_action:
                     return self.keys_to_action[key_combo]
+
+        assert False, 'No valid actions encountered, consider allowing NO_OP'
 
 
     def update(self, game):
