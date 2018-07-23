@@ -8,6 +8,7 @@ import numpy as np
 from math import sqrt
 import itertools
 import pygame
+from pygame.math import Vector2
 import logging
 from typing import NewType, Optional, Union, Dict, List, Tuple
 
@@ -907,17 +908,38 @@ def wallStop(sprite, partner, game, friction=0):
     but possibly sliding along it. """
     if not oncePerStep(sprite, game, 'laststop'):
         return
-    stepBack(sprite, partner, game)
+
+    # We will revise the velocity used for the last movement
+    old_delta = Vector2(sprite.rect.topleft) - Vector2(sprite.lastrect.topleft)
+
     # Horizontal collision
     if abs(sprite.rect.centerx - partner.rect.centerx) > abs(sprite.rect.centery - partner.rect.centery):
-        velocity = (0, sprite.velocity[1] * (1. - friction))
+        # velocity = (0, sprite.velocity[1] * (1. - friction))
+        if sprite.velocity[0] > 0:
+            x_clip = partner.rect.left - sprite.rect.right
+        else:
+            x_clip = partner.rect.right - sprite.rect.left
+
+        rescale = (old_delta.x + x_clip) / old_delta.x
+        new_delta = old_delta * rescale
+
+        sprite.passive_force = (0, sprite.passive_force[1])
+        velocity = (0, sprite.velocity[1])
     else:
+        # Downward motion, so downward collision
+        if sprite.velocity[1] > 0:
+            y_clip = partner.rect.top - sprite.rect.bottom
+        else:
+            y_clip = partner.rect.bottom - sprite.rect.top
+
+        rescale = (old_delta.y + y_clip) / old_delta.y
+        new_delta = old_delta * rescale
+
         # Counter-act passive movement that has been applied earlier
         sprite.passive_force = (sprite.passive_force[0], 0)
         velocity = (sprite.velocity[0], 0)
-        # velocity = (sprite.velocity[0] * (1. - friction), 0)
-        # orientation = sprite.velocity
 
+    sprite.rect = sprite.lastrect.move(new_delta)
     sprite.update_velocity(velocity)
 
 def killIfSlow(sprite, partner, game, limitspeed=1):

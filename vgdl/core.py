@@ -729,11 +729,13 @@ class VGDLSprite:
 
     def _updatePos(self, orientation, speed=None):
         if speed is None:
-            speed = self.speed
+            velocity = self.velocity
+        else:
+            velocity = np.array(self.orientation) * speed
         # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
         if not(self.cooldown > self.lastmove):
             # TODO use self.velocity
-            self.rect = self.rect.move(np.array(orientation) * speed)
+            self.rect = self.rect.move(velocity)
             self.lastmove = 0
 
     @property
