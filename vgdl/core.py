@@ -172,7 +172,6 @@ class SpriteRegistry:
 # This may not fly anymore with actions that require multiple simultaneous key presses
 # Action = NewType('Action', int)
 Color = NewType('Color', Tuple[int, int, int])
-Direction = NewType('Direction', Tuple[int, int])
 
 class SpriteState(PrettyDict, UserDict):
     pass
@@ -232,6 +231,11 @@ class Action:
 
     def __eq__(self, other):
         return self.keys == other.keys
+
+
+    @classmethod
+    def from_vectors(*v):
+        pass
 
 
 class BasicGame:
@@ -664,7 +668,7 @@ class VGDLSprite:
     cooldown      = 0 # pause ticks in-between two moves
     speed         = None # type: Optional[int]
     mass          = 1
-    physicstype   = None # type: type
+    physicstype   = None
     shrinkfactor  = 0.
 
     state_attributes = ['alive', 'resources', 'speed']
@@ -855,3 +859,7 @@ class Termination:
             return True, False
         else:
             return False, None
+
+class Physics:
+    def __init__(self, gridsize):
+        self.gridsize = gridsize

@@ -14,7 +14,7 @@ class AStarWorld(object):
 
 	def __init__(self, game):
 		self.game = game
-		#ghost_sprites = game.getSprites('ghost') 
+		#ghost_sprites = game.getSprites('ghost')
 		#pacman_sprite = game.getSprites('pacman')[0]
 
 		self.food = game.getSprites('food')
@@ -50,7 +50,7 @@ class AStarWorld(object):
 			self.walkable_tile_indices.append(index)
 			self.walkable_tiles[index] = AStarNode(index, sprite)
 
-	
+
 
 	def get_index(self, tileX, tileY):
 		#return tileX  * self.game.width + tileY
@@ -83,7 +83,7 @@ class AStarWorld(object):
 
 
 	def get_lowest_f(self, nodes, f_score):
-		f_best = 9999 
+		f_best = 9999
 		node_best = None
 		for node in nodes:
 			if f_score[node.index] < f_best:
@@ -106,7 +106,7 @@ class AStarWorld(object):
 	def neighbor_nodes(self, node):
 		sprite = node.sprite;
 		return self.neighbor_nodes_of_sprite(sprite)
-	
+
 	def neighbor_nodes_of_sprite(self, sprite):
 		tileX, tileY = self.get_sprite_tile_position(sprite)
 
@@ -157,7 +157,7 @@ class AStarWorld(object):
 		f_score[start.index] = g_score[start.index] + self.h(start, goal)
 
 		while (len(openset) > 0):
-			
+
 			current = self.get_lowest_f(openset, f_score)
 			if current.index == goal.index:
 				# print came_from
