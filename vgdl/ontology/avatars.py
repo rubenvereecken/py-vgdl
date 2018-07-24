@@ -312,41 +312,64 @@ class MarioAvatar(OrientedAvatar):
     # TODO seriously take this out of here
     passive_force = (0, 0)
 
-    def update(self, game):
+    def resolve_active_force(self, action, game):
         from pygame.locals import K_SPACE
 
-        action = self._readAction(game)
         # Force will just have a horizontal component as we do not allow up/down
         force = action.as_vector()
 
-        # You have to keep exerting force to keep moving
-        horizontal_stopping_force = -self.velocity[0] / self.mass
-
         if K_SPACE in action.keys and self.passive_force[1] == 0:
             # Not airborne and attempting to jump
-            force = (horizontal_stopping_force + force[0] * sqrt(self.strength), -self.strength)
+            force = (force[0] * sqrt(self.strength), -self.strength)
         elif self.passive_force[1] != 0 and self.airsteering:
             # Airborne and actively steering, horizontal stopping force is less
             horizontal_stopping_force = - np.sign(self.velocity[0]) * np.sqrt(np.abs(self.velocity[0] / self.mass))
-            force = (horizontal_stopping_force + force[0] * sqrt(self.strength), 0)
+            force = (force[0] * sqrt(self.strength), 0)
         elif self.passive_force[1] != 0 and not self.airsteering:
             # Airborne and not allowed to steer, so just let fly
             force = (0, 0)
         elif self.passive_force[1] == 0 and force[0]:
             # Actively walking along, you want the net velocity to be fixed
-            force = (horizontal_stopping_force + force[0] * sqrt(self.strength), 0)
+            force = (force[0] * sqrt(self.strength), 0)
         else:
             # Not walking, should actively halt
-            force = (horizontal_stopping_force, 0)
-        print(game.time, self.velocity, self.rect.topleft, self.passive_force)
+            force = (0, 0)
 
-        self.physics.activeMovement(self, force)
+        return force
+
+
+    def resolve_passive_force(self, action, game):
+        """
+        I have not decided whether this should go inside Physics.
+        This is really part of the physics, but it's up to the avatar implementation
+        to decide when to ignore physics such as when airsteering.
+
+        Things like friction, sticky floors, should be resolved here.
+        """
+        if self.passive_force[1] != 0 and not self.airsteering:
+            force = (0, 0)
+        else:
+            # This undoes horizontal velocity, so we stop when we don't move
+            force = (-self.velocity[0] / self.mass, 0)
+
+        return force
+
+
+
+    def update(self, game):
+        action = self._readAction(game)
+        active_force = self.resolve_active_force(action, game)
+        passive_force = self.resolve_passive_force(action, game)
+
+        self.physics.activeMovement(self, Vector2(active_force) + passive_force)
+
+        if not self.is_static and not self.only_active:
+            # Resolve gravity, also sticky floors
+            self.physics.passiveMovement(self)
 
         # Body of VGDLSprite.update
         self.lastrect = self.rect
         self.lastmove += 1
-        if not self.is_static and not self.only_active:
-            self.physics.passiveMovement(self)
 
         self._updatePos(self.orientation, self.speed)
 

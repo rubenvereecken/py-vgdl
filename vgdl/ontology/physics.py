@@ -54,6 +54,7 @@ class ContinuousPhysics(GridPhysics):
         # if self.gravity > 0 and sprite.mass > 0:
         #     sprite.passive_force = (0, self.gravity * sprite.mass)
         #     self.activeMovement(sprite, sprite.passive_force)
+
         if self.gravity > 0 and sprite.mass > 0:
             sprite.passive_force = (0, self.gravity * sprite.mass)
             self.activeMovement(sprite, sprite.passive_force)

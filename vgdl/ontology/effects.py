@@ -185,6 +185,7 @@ def wallStop(sprite, partner, game, friction=0):
     sprite.rect = sprite.lastrect.move(new_delta)
     sprite.update_velocity(velocity)
 
+
 def killIfSlow(sprite, partner, game, limitspeed=1):
     """ Take a decision based on relative speed. """
     if sprite.is_static:
