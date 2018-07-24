@@ -7,6 +7,7 @@ import pygame
 from pygame.math import Vector2
 
 from vgdl.core import Action, Physics
+from vgdl.ontology.constants import NOOP
 
 __all__ = [
     'GridPhysics',
@@ -36,7 +37,10 @@ class GridPhysics(Physics):
                 speed = 1
             else:
                 speed = sprite.speed
-        if speed != 0 and action is not None:
+        if speed != 0 and action is not None and action != NOOP:
+            # TODO have all actions be Action
+            if isinstance(action, Action):
+                action = action.as_vector()
             sprite._updatePos(action, speed * self.gridsize[0])
 
 

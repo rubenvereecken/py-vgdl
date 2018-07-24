@@ -25,6 +25,7 @@ def cloneSprite(sprite, partner, game):
     game.create_sprite(sprite.name, (sprite.rect.left, sprite.rect.top))
 
 def transformTo(sprite, partner, game, stype='wall'):
+    from vgdl.ontology.sprites import OrientedSprite
     game.destroy_sprite(sprite)
     new_sprite = game.create_sprite(stype, sprite.rect.topleft, sprite.id)
     assert new_sprite, 'This really was not supposed to happen, cannot recover'

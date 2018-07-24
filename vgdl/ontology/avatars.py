@@ -8,6 +8,7 @@ import pygame
 from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Avatar, Action, Resource
+from vgdl.tools import unitVector
 from .constants import *
 from .sprites import SpriteProducer, OrientedSprite
 from .physics import GridPhysics, ContinuousPhysics, GravityPhysics
@@ -229,12 +230,12 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
     def declare_possible_actions(cls):
         from pygame.locals import K_SPACE
         actions = super().declare_possible_actions()
-        actions["SPACE"] = K_SPACE
+        actions["SPACE"] = Action(K_SPACE)
         return actions
 
     def __init__(self, stype=None, **kwargs):
         self.stype = stype
-        OrientedSprite.__init__(self, **kwargs)
+        OrientedAvatar.__init__(self, **kwargs)
 
     def update(self, game):
         OrientedAvatar.update(self, game)
@@ -256,10 +257,11 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
         from pygame.locals import K_SPACE
         if self.stype and game.keystate[K_SPACE]:
             u = unitVector(self.orientation)
-            newones = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
+            sprite = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
                                                        self.lastrect.top + u[1] * self.lastrect.size[1]))
-            if len(newones) > 0  and isinstance(newones[0], OrientedSprite):
-                newones[0].orientation = unitVector(self.orientation)
+            if sprite and isinstance(sprite, OrientedSprite):
+                sprite.orientation = unitVector(self.orientation)
+
             self._reduceAmmo()
 
 class AimedAvatar(ShootAvatar):

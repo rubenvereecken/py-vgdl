@@ -334,8 +334,10 @@ class BasicGame:
         self.kill_list.clear()
 
         # guarantee that avatar is always visible
-        self.sprite_order.remove('avatar')
-        self.sprite_order.append('avatar')
+        # Sprites with stype 'avatar' but not as main key won't work here
+        if 'avatar' in self.sprite_order:
+            self.sprite_order.remove('avatar')
+            self.sprite_order.append('avatar')
 
 
     def initScreen(self, headless, zoom=5, title=None):
@@ -452,7 +454,7 @@ class BasicGame:
     def numSprites(self, key):
         """ Abstract groups are computed on demand only """
         deleted = len([s for s in self.kill_list if key in s.stypes])
-        assert len(self.kill_list) == 0, 'Deprecated behaviour'
+
         if key in self.sprite_registry.groups():
             return len(self.sprite_registry.groups()[key])-deleted
         else:
@@ -745,6 +747,8 @@ class VGDLSprite:
 
     def _updatePos(self, orientation, speed=None):
         # TODO use self.speed etc
+        if isinstance(orientation, Action):
+            import ipdb; ipdb.set_trace()
         if speed is None:
             velocity = Vector2(orientation) * self.speed
         else:

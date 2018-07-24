@@ -8,6 +8,7 @@ from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Action, Resource
 from vgdl.core import Color
+from vgdl.tools import triPoints, unitVector
 from .constants import *
 from .physics import GridPhysics, ContinuousPhysics
 
@@ -63,7 +64,7 @@ class Flicker(VGDLSprite):
     def update(self, game):
         VGDLSprite.update(self, game)
         if self._age > self.limit:
-            killSprite(self, None, game)
+            game.kill_sprite(self)
         self._age += 1
 
 class Spreader(Flicker):
@@ -108,7 +109,7 @@ class SpawnPoint(SpriteProducer):
             self.counter += 1
 
         if self.total and self.counter >= self.total:
-            killSprite(self, None, game)
+            game.kill_sprite(self)
 
 class RandomNPC(VGDLSprite):
     """ Chooses randomly from all available actions each step. """
