@@ -252,6 +252,8 @@ class BasicGame:
     block_size = 10
     render_sprites = True
 
+    default_mapping = { 'w': ['wall'], 'A': ['avatar'] }
+
     notable_resources: List[str] = []
 
     def __init__(self, sprite_registry, **kwargs):
@@ -320,9 +322,10 @@ class BasicGame:
         # create sprites
         for row, l in enumerate(lines):
             for col, c in enumerate(l):
-                if c in self.char_mapping:
+                key = self.char_mapping.get(c, None) or self.default_mapping.get(c, None)
+                if key is not None:
                     pos = (col*self.block_size, row*self.block_size)
-                    self.create_sprites(self.char_mapping[c], pos)
+                    self.create_sprites(key, pos)
         for _, _, effect, _ in self.collision_eff:
             if effect in stochastic_effects:
                 self.is_stochastic = True
