@@ -270,6 +270,6 @@ def pullWithIt(sprite, partner, game):
     sprite.lastrect = tmp
 
 def teleportToExit(sprite, partner, game):
-    e = game.random_generator.choice(game.sprite_groups[partner.stype])
+    e = game.random_generator.choice(game.sprite_registry.group(partner.stype))
     sprite.rect = e.rect
     sprite.lastmove = 0
