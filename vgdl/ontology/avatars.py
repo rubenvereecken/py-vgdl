@@ -311,9 +311,12 @@ class MarioAvatar(OrientedAvatar):
     strength = 10
     airsteering = False
 
+    state_attributes = OrientedAvatar.state_attributes + ['passive_force', 'active_force']
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.passive_force = (0, 0)
+        self.active_force = (0, 0)
 
     def resolve_active_force(self, action, game):
         from pygame.locals import K_SPACE
@@ -356,7 +359,6 @@ class MarioAvatar(OrientedAvatar):
             force = (-self.velocity[0] / self.mass, 0)
 
         return force
-
 
 
     def update(self, game):

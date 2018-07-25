@@ -137,7 +137,8 @@ class SpriteRegistry:
         Overwriting really is an unnecessary optimisation. All it gives us is
         last references to objects that do not get added, such as the avatar.
         """
-        assert set(self.sprite_keys) == set(state.keys()), \
+        # It is possible less sprites are saved than we know of
+        assert set(self.sprite_keys).issuperset(state.keys()), \
             'Known sprite keys should match'
 
         other_ids = set([sprite['id'] for sprites in state.values() for sprite in sprites])
@@ -201,7 +202,7 @@ class GameState(UserDict):
         """ Assume single-avatar """
         avatar_state = self.avatar_state['state']
         return ('GameState(time={time}, score={score}, ended={ended}, '
-               'avatar=(pos={pos}, alive={alive}))').format(**self.data, **avatar_state)
+               'avatar=(pos={rect.topleft}, alive={alive}))').format(**self.data, **avatar_state)
 
 
 class Action:
@@ -230,8 +231,10 @@ class Action:
         return 'Action({})'.format(key_rep or 'noop')
 
     def __eq__(self, other):
-        return self.keys == other.keys
+        return frozenset(self.keys) == frozenset(other.keys)
 
+    def __hash__(self):
+        return hash(frozenset(self.keys))
 
     @classmethod
     def from_vectors(*v):
@@ -590,7 +593,7 @@ class BasicGame:
         return avatar_cls.declare_possible_actions()
 
 
-    def tick(self, action: Union[Action, int]):
+    def tick(self, action: Union[Action, int], headless=None):
         """
         Actions are currently communicated to the rest of the program
         through game.keystate, which mimics pygame.key.get_pressed().
@@ -605,6 +608,9 @@ class BasicGame:
           'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
         if isinstance(action, int):
             action = Action(action)
+        # Sometimes you want to use the game's model to think ahead without vis
+        if headless is None:
+            headless = self.headless
 
         if self.ended:
             logging.warning('Action performed while game ended')
@@ -645,7 +651,7 @@ class BasicGame:
             if self.ended:
                 break
 
-        if not self.headless:
+        if not headless:
             self._drawAll()
             self._update_display()
             # TODO once dirtyrects are back in, reset them here
@@ -673,10 +679,10 @@ class VGDLSprite:
     cooldown      = 0 # pause ticks in-between two moves
     speed         = None # type: Optional[int]
     mass          = 1
-    physicstype   = None
+    physicstype   = None # type: type
     shrinkfactor  = 0.
 
-    state_attributes = ['alive', 'resources', 'speed']
+    state_attributes = ['rect', 'alive', 'resources', 'speed']
 
     def __init__(self, key, id, pos, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
         # Every sprite must have a key, an id, and a position
@@ -695,6 +701,10 @@ class VGDLSprite:
         # TODO rng
         self.color = color or self.color
         # self.color            = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))
+
+        # TODO re-evaluate whether this is useful
+        # To be populated by events, should be cleared on reset
+        self._effect_data     = {}
 
         for name, value in kwargs.items():
             try:
@@ -720,16 +730,17 @@ class VGDLSprite:
 
 
     def getGameState(self) -> SpriteState:
-        state = { attr_name: getattr(self, attr_name) for attr_name in self.state_attributes \
+        state = { attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
                  if hasattr(self, attr_name)}
-        state['pos'] = self.rect.topleft
         # The alternative is to have each class define _just_ its state attrs,
         # flatten(c.state_attributes for c in inspect.getmro(self.__class__) \
         #   if c.hasattr('state_attributes'))
+        state['_effect_data'] = copy.deepcopy(self._effect_data)
         return SpriteState(state)
 
     def setGameState(self, state: SpriteState):
-        self.rect.topleft = state.pop('pos')
+        self._effect_data.clear()
+        self._effect_data.update(state.pop('_effect_data'))
 
         for k, v in state.items():
             if hasattr(self, k):
@@ -870,3 +881,14 @@ class Termination:
 class Physics:
     def __init__(self, gridsize):
         self.gridsize = gridsize
+
+
+# TODO move this somewhere pretty
+# This allows both copy and pickle to work with pygame stuff
+import copyreg
+def _pickle_vector(v):
+    return Vector2, (v.x, v.y)
+def _pickle_rect(r):
+    return pygame.Rect, (*r.topleft, r.width, r.height)
+copyreg.pickle(Vector2, _pickle_vector)
+copyreg.pickle(pygame.Rect, _pickle_rect)

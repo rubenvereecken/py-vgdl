@@ -33,7 +33,7 @@ class StateObserver:
     def __init__(self, game: BasicGame) -> None:
         self._game = game
 
-    def get_observation(self):
+    def get_observation(self) -> Observation:
         raise NotImplemented()
 
     def _rect_to_pos(self, r):
