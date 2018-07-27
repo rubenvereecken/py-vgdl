@@ -184,7 +184,7 @@ def wallStop(sprite, partner, game, friction=0):
         x_clip = None
 
     sprite.rect = sprite.lastrect.move(new_delta)
-    sprite.update_velocity(velocity)
+    sprite.velocity = velocity
 
 
 def killIfSlow(sprite, partner, game, limitspeed=1):

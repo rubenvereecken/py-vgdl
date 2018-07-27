@@ -772,13 +772,14 @@ class VGDLSprite:
 
     @property
     def velocity(self) -> Vector2:
+        """ The velocity property is made up of the orientation and speed attributes """
         if self.speed is None or self.speed==0 or not hasattr(self, 'orientation'):
             return Vector2(0,0)
         else:
             return Vector2(self.orientation) * self.speed
 
-
-    def update_velocity(self, v):
+    @velocity.setter
+    def velocity(self, v):
         assert len(v) == 2
         v = Vector2(v)
         self.speed = v.length()
@@ -790,7 +791,6 @@ class VGDLSprite:
         if any(np.isnan(self.orientation)):
             print("NAN ALERT")
             import ipdb; ipdb.set_trace()
-
 
     @property
     def lastdirection(self):

@@ -77,7 +77,7 @@ class ContinuousPhysics(GridPhysics):
         force = Vector2(force)
         velocity = old_velocity + force / sprite.mass
 
-        sprite.update_velocity(velocity)
+        sprite.velocity = velocity
 
 
     def distance(self, r1, r2):
