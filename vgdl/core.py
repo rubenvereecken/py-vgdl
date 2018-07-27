@@ -164,7 +164,7 @@ class SpriteRegistry:
                     self._sprite_by_id[id].setGameState(sprite_state['state'])
                 else:
                     # Including pos here because I don't like allowing position-less sprites
-                    sprite = self.create_sprite(key, id, pos=sprite_state['state']['pos'])
+                    sprite = self.create_sprite(key, id, pos=sprite_state['state']['rect'].topleft)
                     sprite.setGameState(sprite_state['state'])
 
 
@@ -196,7 +196,7 @@ class GameState(UserDict):
 
     def __lt__(self, other):
         # return self.data['time'] < other.data['time']
-        return self.avatar_state['state']['pos'] < other.avatar_state['state']['pos']
+        return self.avatar_state['state']['rect'] < other.avatar_state['state']['rect']
 
     def __repr__(self):
         """ Assume single-avatar """
