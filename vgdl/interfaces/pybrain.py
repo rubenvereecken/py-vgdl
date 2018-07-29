@@ -29,15 +29,17 @@ class VGDLPybrainEnvironment(Environment):
         self.action_set: List[Action] = list(game.getPossibleActions().values())
         # self.init_state = state_handler.get_state()
         self.init_game_state = game.getGameState()
-        print(list(self.init_game_state))
-        self.init_observation = state_handler.get_observation()
 
         # Pybrain Environment attributes
         self.numActions = len(self.action_set)
-        self.outdim = len(self.init_observation)
 
         self.reset(init=True)
+
+        # Some observers need pygame initialised first
+        self.init_observation = state_handler.get_observation()
+        print(self.init_game_state, self.init_observation)
         print(self.action_set)
+        self.outdim = len(self.init_observation)
 
 
     def reset(self, init=False):

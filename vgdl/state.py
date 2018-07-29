@@ -28,6 +28,8 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
         for el in self.as_array():
             yield el
 
+    def __hash__(self):
+        return hash(tuple(self.items()))
 
 class StateObserver:
     def __init__(self, game: BasicGame) -> None:
