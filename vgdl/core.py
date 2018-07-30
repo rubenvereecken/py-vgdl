@@ -147,15 +147,12 @@ class SpriteRegistry:
         added_ids = other_ids.difference(known_ids)
 
         if len(deleted_ids) > 0:
-            print('To be deleted')
-            print(deleted_ids)
             for key in self.sprite_keys:
                 self._sprites_by_key[key] = [sprite for sprite in self._sprites_by_key[key] \
                                              if not sprite.id in deleted_ids]
 
         if len(added_ids) > 0:
-            print('To be added')
-            print(added_ids)
+            pass
 
         for key, sprite_states in state.items():
             for sprite_state in sprite_states:
@@ -223,7 +220,6 @@ class Action:
         return Vector2( -1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
                  -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys) )
 
-
     def __repr__(self):
         import pygame.key
         _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
@@ -239,6 +235,17 @@ class Action:
     @classmethod
     def from_vectors(*v):
         pass
+
+
+# Probably ACTION_UP is the cleaner way to code this?
+class ACTION:
+    UP = Action(pygame.K_UP)
+    DOWN = Action(pygame.K_DOWN)
+    RIGHT = Action(pygame.K_RIGHT)
+    LEFT = Action(pygame.K_LEFT)
+    SPACE = Action(pygame.K_SPACE)
+    SPACE_RIGHT = Action(pygame.K_SPACE, pygame.K_RIGHT)
+    SPACE_LEFT = Action(pygame.K_SPACE, pygame.K_LEFT)
 
 
 class BasicGame:
@@ -383,6 +390,9 @@ class BasicGame:
         self.time = 0
         self.ended = False
         self.kill_list.clear()
+        # TODO maybe not the best practice, this actually clears all sprites
+        # instead of going back to some initial state.
+        # Should keep around an initial game state to restore to
         self.sprite_registry.reset()
         # TODO rng?
 
@@ -589,7 +599,12 @@ class BasicGame:
     def getPossibleActions(self) -> Dict[str, Action]:
         """ Assume actions don't change """
         from vgdl.core import Avatar
-        avatar_cls = next(cls for cls in self.sprite_registry.classes.values() if issubclass(cls, Avatar))
+        try:
+            avatar_cls = next(cls for cls in self.sprite_registry.classes.values() \
+                              if issubclass(cls, Avatar))
+        except StopIteration:
+            'No avatar found'
+            import ipdb; ipdb.set_trace()
         return avatar_cls.declare_possible_actions()
 
 
@@ -612,12 +627,12 @@ class BasicGame:
         if headless is None:
             headless = self.headless
 
-        if self.ended:
-            logging.warning('Action performed while game ended')
-            return
-
         # This is required for game-updates to work properly
         self.time += 1
+
+        if self.ended:
+            # logging.warning('Action performed while game ended')
+            return
 
         # Flush events
         # Getting events like this keeps things rolling, otherwise use pygame.event.pump

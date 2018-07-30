@@ -53,7 +53,6 @@ class MDPConverter:
         Also logs (s,a,s') transitions and R(s')
         Will leave the environment in an arbitrary neighbor state
         """
-        print(state)
         # Final states are absorbing state
         if state.ended():
             return []
