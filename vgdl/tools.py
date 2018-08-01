@@ -41,7 +41,7 @@ def freeze_dict(d):
         elif isinstance(v, list):
             v = tuple(freeze_dict(el) for el in v)
             d[k] = v
-        elif isinstance(v, pygame.Rect):
+        elif isinstance(v, pygame.Rect) or isinstance(v, pygame.math.Vector2):
             d[k] = tuple(v)
         else:
             d[k] = v
