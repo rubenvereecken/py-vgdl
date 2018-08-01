@@ -49,12 +49,6 @@ def freeze_dict(d):
     return frozenset(d.items())
 
 
-def logToFile(string):
-    f = open("log.txt", "a")
-    f.write(string +"\n")
-    f.close()
-    pass
-
 def vectNorm(v):
     return sqrt(float(v[0])**2+v[1]**2)
 
@@ -166,28 +160,3 @@ def indentTreeParser(s, tabsize=8):
 
 def listRotate(l, n):
     return l[n:] + l[:n]
-
-
-def makeGifVideo(env, actions, initstate=None, prefix='seq_', duration=0.1,
-                 outdir='../gifs/', tmpdir='../temp/'):
-    """ Generate an animated gif from a sequence of actions. """
-    from external_libs.images2gif import writeGif
-    import Image
-    env.visualize = True
-    env.reset()
-    if initstate is not None:
-        env.setState(initstate)
-    env._counter = 1
-    res_images = []
-    astring = ''.join([str(a) for a in actions if a is not None])
-
-    def cb(*_):
-        fn = tmpdir + "tmp%05d.png" % env._counter
-        pygame.image.save(env._game.screen, fn)
-        res_images.append(Image.open(fn))
-        env._counter += 1
-
-    env.rollOut(actions, callback=cb)
-    writeGif(outdir + prefix + '%s.gif' % astring, res_images, duration=duration, dither=0)
-
-

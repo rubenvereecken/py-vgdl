@@ -283,7 +283,6 @@ class AStarChaser(RandomNPC):
                 pygame.draw.rect(game.screen, col, sprite.rect)
 
         if self.neighborNodes:
-            #logToFile("len(neighborNodes)=%s" %len(self.neighborNodes))
             col = pygame.Color(0, 255, 255, 80)
             for node in self.neighborNodes:
                 pygame.draw.rect(game.screen, col, node.sprite.rect)
@@ -324,17 +323,13 @@ class AStarChaser(RandomNPC):
 
             if nowX == nextX:
                 if nextY > nowY:
-                    #logToFile('DOWN')
                     movement = DOWN
                 else:
-                    #logToFile('UP')
                     movement = UP
             else:
                 if nextX > nowX:
-                    #logToFile('RIGHT')
                     movement = RIGHT
                 else:
-                    #logToFile('LEFT')
                     movement = LEFT
 
         self.physics.activeMovement(self, movement)

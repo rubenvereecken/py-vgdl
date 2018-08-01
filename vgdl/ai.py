@@ -1,6 +1,5 @@
 import math
 from .core import VGDLSprite
-#from tools import logToFile
 
 class AStarNode(object):
 
@@ -138,8 +137,6 @@ class AStarWorld(object):
 		goalX, goalY = self.get_sprite_tile_position(pacman)
 		goalIndex = self.get_index(goalX, goalY)
 		goalNode = AStarNode(goalIndex, pacman)
-
-		# logToFile('Goal: (%s,%s) --> (%s, %s)' %(tileX, tileY, goalX, goalY))
 
 		return self.search(startNode, goalNode)
 
