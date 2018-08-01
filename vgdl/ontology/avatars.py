@@ -308,7 +308,8 @@ class MarioAvatar(OrientedAvatar):
     """
     physicstype = GravityPhysics
     draw_arrow = False
-    strength = 10
+    strength = 3
+    jump_strength = 10
     airsteering = False
 
     state_attributes = OrientedAvatar.state_attributes + ['passive_force', 'active_force']
@@ -326,17 +327,17 @@ class MarioAvatar(OrientedAvatar):
 
         if K_SPACE in action.keys and self.passive_force[1] == 0:
             # Not airborne and attempting to jump
-            force = (force[0] * sqrt(self.strength), -self.strength)
+            force = (force[0] * self.strength, -self.jump_strength)
         elif self.passive_force[1] != 0 and self.airsteering:
             # Airborne and actively steering, horizontal stopping force is less
             horizontal_stopping_force = - np.sign(self.velocity[0]) * np.sqrt(np.abs(self.velocity[0] / self.mass))
-            force = (force[0] * sqrt(self.strength), 0)
+            force = (force[0] * self.strength, 0)
         elif self.passive_force[1] != 0 and not self.airsteering:
             # Airborne and not allowed to steer, so just let fly
             force = (0, 0)
         elif self.passive_force[1] == 0 and force[0]:
             # Actively walking along, you want the net velocity to be fixed
-            force = (force[0] * sqrt(self.strength), 0)
+            force = (force[0] * self.strength, 0)
         else:
             # Not walking, should actively halt
             force = (0, 0)
