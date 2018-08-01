@@ -23,7 +23,7 @@ class PrettyDict:
         return '{}({})'.format(self.__class__.__name__, attributes)
 
 
-def freeze_dict(d):
+def freeze_dict(d, freezers={}):
     """
     - Assumes d is immutable
     - Assumes item ordering doesn't matter (ignores OrderedDict)
@@ -36,10 +36,13 @@ def freeze_dict(d):
     d = copy.deepcopy(d)
 
     for k, v in d.items():
-        if _is_dict(v):
-            d[k] = freeze_dict(v)
+        vtype = type(v)
+        if vtype in freezers:
+            d[k] = freezers[vtype](v)
+        elif _is_dict(v):
+            d[k] = freeze_dict(v, freezers)
         elif isinstance(v, list):
-            v = tuple(freeze_dict(el) for el in v)
+            v = tuple(freeze_dict(el, freezers) for el in v)
             d[k] = v
         elif isinstance(v, pygame.Rect) or isinstance(v, pygame.math.Vector2):
             d[k] = tuple(v)

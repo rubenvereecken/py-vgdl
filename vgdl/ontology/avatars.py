@@ -73,8 +73,7 @@ class MovingAvatar(VGDLSprite, Avatar):
         An action can consist of multiple key presses. The action corresponding
         to the most key presses will be returned. Ties are broken arbitrarily.
         """
-        active_keys = np.where(game.keystate)[0]
-        active_keys = tuple(sorted(active_keys))
+        active_keys = tuple(sorted(game.active_keys))
 
         # Up to 3 buttons active at a time, at least 0,
         for num_keys in range(max(3, len(active_keys)), -1, -1):
@@ -148,7 +147,7 @@ class FlakAvatar(HorizontalAvatar, SpriteProducer):
 
     def _shoot(self, game):
         from pygame.locals import K_SPACE
-        if self.stype and game.keystate[K_SPACE]:
+        if self.stype and K_SPACE in game.active_keys:
             game.create_sprite(self.stype, (self.rect.left, self.rect.top))
 
 class OrientedAvatar(OrientedSprite, MovingAvatar):
@@ -255,7 +254,7 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
 
     def _shoot(self, game):
         from pygame.locals import K_SPACE
-        if self.stype and game.keystate[K_SPACE]:
+        if self.stype and K_SPACE in game.active_keys:
             u = unitVector(self.orientation)
             sprite = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
                                                        self.lastrect.top + u[1] * self.lastrect.size[1]))
@@ -312,7 +311,8 @@ class MarioAvatar(OrientedAvatar):
     jump_strength = 10
     airsteering = False
 
-    state_attributes = OrientedAvatar.state_attributes + ['passive_force', 'active_force']
+    # active_force is only used during event handling, so don't save it
+    state_attributes = OrientedAvatar.state_attributes + ['passive_force']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
