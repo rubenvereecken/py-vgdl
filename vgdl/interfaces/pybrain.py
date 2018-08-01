@@ -42,15 +42,12 @@ class VGDLPybrainEnvironment(Environment):
 
 
     def reset(self, init=False):
+        # This wil reset to initial game state
         self.game.reset()
         self.game.initScreen(self.headless)
 
-        if not init:
-            # self.game.setState(self.init_state)
-            self.game.setGameState(self.init_game_state)
-
-        # TODO test this
-        self.game.randomizeAvatar()
+        # TODO at some point we might want random locations
+        # self.game.randomizeAvatar()
 
 
     def getSensors(self):
