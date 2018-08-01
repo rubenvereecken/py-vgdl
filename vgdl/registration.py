@@ -1,3 +1,5 @@
+from typing import Union
+from types import ModuleType
 
 
 class OntologyRegistry:
@@ -27,14 +29,23 @@ class OntologyRegistry:
         return self._register[key]
 
 
-    def register_all(self, module):
-        import inspect
+    def register_all(self, module: ModuleType):
+        # Had an issue with re-registering classes that were imported in module
+        if isinstance(module, ModuleType):
+            import inspect
 
-        for key, obj in inspect.getmembers(module):
-            if key.startswith('__'):
-                continue
-            # obj can be anything, class or function,...
-            self.register(key, obj)
+            # Respect a module's exports
+            module_all = module.__all__ if hasattr(module, '__all__') else None
+
+            for key, obj in inspect.getmembers(module):
+                if key.startswith('__'):
+                    continue
+                if module_all and key not in module_all:
+                    continue
+                # obj can be anything, class or function,...
+                self.register(key, obj)
+        else:
+            raise TypeError('Not sure how to register %s of type %s' % (module, type(module)))
 
 
 registry = OntologyRegistry()
