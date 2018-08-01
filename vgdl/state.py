@@ -57,7 +57,28 @@ class StateObserver:
 class AbsoluteObserver(StateObserver):
     """
     - Assumes a single-avatar grid physics game
-    - Assumes only the avatar can possess resources
+    - Observation is (x, y) of avatar's rectangle, in pixels
+    """
+    def __init__(self, game: BasicGame) -> None:
+        super().__init__(game)
+
+        avatars = game.getSprites('avatar')
+        assert len(avatars) == 1, 'Single avatar'
+        avatar = avatars[0]
+        assert issubclass(avatar.physicstype, GridPhysics)
+
+
+    def get_observation(self) -> Observation:
+        avatars = self._game.getAvatars()
+        assert avatars
+        observation = KeyValueObservation(x=avatars[0].rect.left, y=avatars[0].rect.top)
+        return observation
+
+
+class AbsoluteGridObserver(StateObserver):
+    """
+    - Assumes a single-avatar grid physics game
+    - Observation is (x, y) of avatar converted to grid (not raw pixels)
     """
     def __init__(self, game: BasicGame) -> None:
         super().__init__(game)
