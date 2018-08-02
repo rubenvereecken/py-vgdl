@@ -639,6 +639,7 @@ class BasicGame:
                 for s1 in ss1:
                     if not pygame.Rect((0,0), self.screensize).contains(s1.rect):
                         try:
+                            self.score += score
                             effect(s1, None, self, **kwargs)
                         except Exception as e:
                             import ipdb; ipdb.set_trace()
