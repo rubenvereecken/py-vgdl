@@ -43,7 +43,6 @@ class SpriteRegistry:
         self._dead_sprites_by_key = defaultdict(list)
 
     def reset(self):
-        assert False, 'You sure?'
         self._live_sprites_by_key.clear()
         self._dead_sprites_by_key.clear()
         self._sprite_by_id.clear()
@@ -118,7 +117,7 @@ class SpriteRegistry:
                 yield k, v
             # return self._live_sprites_by_key.items()
         else:
-            assert set(self._live_sprites_by_key) == set(self._dead_sprites_by_key)
+            assert set(self._live_sprites_by_key).issuperset(self._dead_sprites_by_key)
             for key in self._live_sprites_by_key.keys():
                 yield key, self._live_sprites_by_key[key] + self._dead_sprites_by_key[key]
 
@@ -347,7 +346,7 @@ class BasicGame:
     notable_resources: List[str] = []
 
     def __init__(self, sprite_registry, **kwargs):
-        from .ontology import Immovable, DARKGRAY, MovingAvatar, GOLD
+        from .ontology import GOLD
         for name, value in kwargs.items():
             if name in ['notable_resources', 'notable_sprites']:
                 logging.warning('DEPRECATED BasicGame arg will be ignored: %s=%s', name, value)
@@ -397,6 +396,9 @@ class BasicGame:
         # assert self.width > 1 and self.height > 1, "Level too small."
 
         self.screensize = (self.width*self.block_size, self.height*self.block_size)
+
+        # Empty out all known sprites
+        self.sprite_registry.reset()
 
         # set up resources
         self.notable_resources = []
@@ -469,14 +471,13 @@ class BasicGame:
         self.display = pygame.display.set_mode(self.display_size, pygame.RESIZABLE, 32)
 
     def reset(self):
+        """
+        Resets the environment. If a level is known, revert to its initial state.
+        """
         self.score = 0
         self.time = 0
         self.ended = False
         self.kill_list.clear()
-        # TODO maybe not the best practice, this actually clears all sprites
-        # instead of going back to some initial state.
-        # Should keep around an initial game state to restore to
-        # self.sprite_registry.reset()
         if self.init_state:
             self.setGameState(self.init_state)
         # TODO rng?
@@ -952,6 +953,7 @@ class Resource(VGDLSprite):
             return self.key
         else:
             return self.res_type
+
 
 class Termination:
     """ Base class for all termination criteria. """
