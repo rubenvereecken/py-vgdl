@@ -589,9 +589,11 @@ class BasicGame:
         just overwrite their state when setting game state.
         This has the advantage of keeping the Python objects intact.
         """
+        # TODO one day when I need the juice, remove this copy, carefully
         state = copy.deepcopy(state)
-        self.sprite_registry.set_state(state.pop('sprites'))
+        self.sprite_registry.set_state(state.get('sprites'))
         for k, v in state.items():
+            if k in ['sprites']: continue
             setattr(self, k, v)
 
 
@@ -818,7 +820,6 @@ class VGDLSprite:
             self.image = VGDL_GLOBAL_IMG_LIB[self.img]
             self.scale_image = pygame.transform.scale(self.image, (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
 
-
     def getGameState(self) -> SpriteState:
         state = { attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
                  if hasattr(self, attr_name)}
@@ -830,9 +831,10 @@ class VGDLSprite:
 
     def setGameState(self, state: SpriteState):
         self._effect_data.clear()
-        self._effect_data.update(state.pop('_effect_data'))
+        self._effect_data.update(state.get('_effect_data'))
 
         for k, v in state.items():
+            if k in ['_effect_data']: continue
             if hasattr(self, k):
                 setattr(self, k, v)
             else:
@@ -921,14 +923,12 @@ class VGDLSprite:
                 offset += barheight
 
     def _clear(self, screen, background, double=True):
-        pass
         r = screen.blit(background, self.rect, self.rect)
         if double:
             r = screen.blit(background, self.lastrect, self.lastrect)
 
     def __repr__(self):
         return "{} `{}` at ({}, {})".format(self.key, self.id, *self.rect.topleft)
-
 
 class Avatar:
     """ Abstract superclass of all avatars. """
@@ -953,6 +953,27 @@ class Resource(VGDLSprite):
             return self.key
         else:
             return self.res_type
+
+
+class Immutable:
+    """
+    Class for sprites that we do not have to bother saving.
+    It's a simple performance improvement but it seems to improve things a lot.
+
+    NOTE: for now, for backward compatibility, Immutables can still die.
+    """
+
+    def getGameState(self):
+        return SpriteState(dict(alive=self.alive))
+
+    def setGameState(self, state):
+        self.alive = state['alive']
+
+    def _updatePos(self):
+        raise Exception('Tried to move Immutable')
+
+    def update(self, game):
+        return
 
 
 class Termination:

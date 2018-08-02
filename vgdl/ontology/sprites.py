@@ -6,7 +6,7 @@ import numpy as np
 import pygame
 from pygame.math import Vector2
 
-from vgdl.core import VGDLSprite, Action, Resource
+from vgdl.core import VGDLSprite, Action, Resource, Immutable
 from vgdl.core import Color
 from vgdl.tools import triPoints, unitVector
 from .constants import *
@@ -39,8 +39,11 @@ __all__ = [
 ]
 
 
-class Immovable(VGDLSprite):
-    """ A gray square that does not budge. """
+class Immovable(Immutable, VGDLSprite):
+    """
+    A gray square that does not budge. Can potentially die.
+    For sprites that cannot die, consider using Immutable.
+    """
     color = GRAY
     is_static = True
 
