@@ -329,8 +329,7 @@ class MarioAvatar(OrientedAvatar):
             # Not airborne and attempting to jump
             force = (force[0] * self.strength, -self.jump_strength)
         elif self.passive_force[1] != 0 and self.airsteering:
-            # Airborne and actively steering, horizontal stopping force is less
-            horizontal_stopping_force = - np.sign(self.velocity[0]) * np.sqrt(np.abs(self.velocity[0] / self.mass))
+            # Airborne and actively steering
             force = (force[0] * self.strength, 0)
         elif self.passive_force[1] != 0 and not self.airsteering:
             # Airborne and not allowed to steer, so just let fly
