@@ -5,6 +5,8 @@ Video game description language -- parser, framework and core game classes.
 '''
 
 import pygame
+import pygame.key
+from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
 from pygame.math import Vector2
 import random
 from .tools import Node, indentTreeParser, PrettyDict, freeze_dict
@@ -229,7 +231,6 @@ class SpriteState(PrettyDict, UserDict):
     # timestamps that would cause equality to fail where we would want it to succeed
     # Either do not save in form of timestamp, or do time-sensitive equality check
     def norm_time_hash(self, time):
-        data = copy.deepcopy(self.data)
         if '_effect_data' in self.data:
             effect_data = []
             # onceperstep events
@@ -240,9 +241,9 @@ class SpriteState(PrettyDict, UserDict):
                 #     effect_data.append((k, v == time))
                 # else:
                 #     effect_data.append((k, v))
-            data['_effect_data'] = effect_data
-        frozen = freeze_dict(data)
-        return frozen
+            # This should overwrite the original, absolute _effect_data
+            return freeze_dict({**self.data, **dict(_effect_data=effect_data)})
+        return freeze_dict(self.data)
 
 
 
@@ -294,17 +295,26 @@ class Action:
         Directional keys are used to encode directions.
         Opposite directions cancel eachother out.
         """
-        from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
         return Vector2( -1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
                  -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys) )
 
+    def __str__(self):
+        _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
+        key_rep = ','.join(_key_name(k) for k in self.keys)
+        if len(self.keys) <= 1:
+            return key_rep or 'noop'
+        else:
+            return '[{}]'.format(key_rep)
+
+
     def __repr__(self):
-        import pygame.key
         _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
         key_rep = ','.join(_key_name(k) for k in self.keys)
         return 'Action({})'.format(key_rep or 'noop')
 
     def __eq__(self, other):
+        if not hasattr(other, 'keys'):
+            return False
         return frozenset(self.keys) == frozenset(other.keys)
 
     def __hash__(self):

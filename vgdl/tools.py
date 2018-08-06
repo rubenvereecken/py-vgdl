@@ -9,18 +9,23 @@ from collections import UserDict, defaultdict
 from math import sqrt
 import pygame
 
+def _fmt_value(v):
+    return v
 
 class PrettyDict:
     """
     Mixin for pretty user-defined dictionary printing
     """
+    pretty_name = None
+
+
     def __repr__(self):
-        def _clean_value(v):
-            if isinstance(v, dict):
-                return dict(v)
-            return v
-        attributes = ', '.join('{}={}'.format(k, _clean_value(v)) for k, v in self.items())
+        attributes = ', '.join('{}={}'.format(k, _fmt_value(v)) for k, v in self.items())
         return '{}({})'.format(self.__class__.__name__, attributes)
+
+    def __str__(self):
+        attributes = ', '.join('{}={}'.format(k, _fmt_value(v)) for k, v in self.items())
+        return '{}({})'.format(self.pretty_name or self.__class__.__name__, attributes)
 
 
 def freeze_dict(d, freezers={}):
