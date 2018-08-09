@@ -231,12 +231,19 @@ class SpriteState(PrettyDict, UserDict):
     # timestamps that would cause equality to fail where we would want it to succeed
     # Either do not save in form of timestamp, or do time-sensitive equality check
     def norm_time_hash(self, time):
+        """
+        This relies on the HEAVY assumption that timestamp keys start with  't_'
+        """
         if '_effect_data' in self.data:
             effect_data = []
             # onceperstep events
             for k, v in self.data['_effect_data'].items():
-                if k == 'last_touched_ladder':
+                if k == 't_last_touched_ladder':
                     effect_data.append((k, v >= time -1))
+                elif k.startswith('t_'):
+                    effect_data.append((k, v >= time))
+                else:
+                    effect_data.append((k, v))
                 # elif isinstance(v, int):
                 #     effect_data.append((k, v == time))
                 # else:
@@ -396,8 +403,33 @@ class BasicGame:
             return '{}'.format(self.__class__.__name__)
 
 
+    def _identity(self):
+        """
+        Meant for __eq__ and __hash__, returns attributes that identify a
+        BasicGame with a level completely
+        """
+        import dill
+        return dict(
+            block_size=self.block_size,
+            levelstring=self.levelstring,
+            effects=[dill.dumps(effect) for effect in self.collision_eff],
+            # This summarises the domain. Careful, dill doesn't serialise class
+            # definitions, so code changes won't be reflected.
+            classes=dill.dumps(self.sprite_registry.classes),
+            class_args=dill.dumps(self.sprite_registry.class_args)
+        )
+
+
+    def __hash__(self):
+        """
+        Domain- and level-sensitive hash. Ignores GameState.
+        """
+        return hash(self._identity())
+
+
     def buildLevel(self, lstr):
         from .ontology import stochastic_effects
+        self.levelstring = lstr
         lines = [l for l in lstr.split("\n") if len(l)>0]
         lengths = list(map(len, lines))
         assert min(lengths)==max(lengths), "Inconsistent line lengths."

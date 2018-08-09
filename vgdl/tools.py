@@ -20,11 +20,11 @@ class PrettyDict:
 
 
     def __repr__(self):
-        attributes = ', '.join('{}={}'.format(k, _fmt_value(v)) for k, v in self.items())
+        attributes = ', '.join('{}={!r}'.format(k, _fmt_value(v)) for k, v in self.items())
         return '{}({})'.format(self.__class__.__name__, attributes)
 
     def __str__(self):
-        attributes = ', '.join('{}={}'.format(k, _fmt_value(v)) for k, v in self.items())
+        attributes = ', '.join('{}={!s}'.format(k, _fmt_value(v)) for k, v in self.items())
         return '{}({})'.format(self.pretty_name or self.__class__.__name__, attributes)
 
 

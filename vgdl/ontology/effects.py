@@ -108,7 +108,7 @@ def bounceDirection(sprite, partner, game, friction=0):
 
 def wallBounce(sprite, partner, game, friction=0):
     """ Bounce off orthogonally to the wall. """
-    if not oncePerStep(sprite, game, 'lastbounce'):
+    if not oncePerStep(sprite, game, 't_lastbounce'):
         return
     sprite.speed *= (1. - friction)
     stepBack(sprite, partner, game)
@@ -140,7 +140,7 @@ def wallStop(sprite, partner, game, friction=0):
     # Horizontal collision
     # Assume you need horizontal velocity to effect a horizontal collision
     if abs(lastcollision_vec.x) > abs(lastcollision_vec.y):
-        if not oncePerStep(sprite, game, 'last_horizontal_stop'):
+        if not oncePerStep(sprite, game, 't_last_horizontal_stop'):
             return
 
         # velocity = (0, sprite.velocity[1] * (1. - friction))
@@ -161,7 +161,7 @@ def wallStop(sprite, partner, game, friction=0):
         velocity = (0, sprite.velocity[1])
         y_clip = None
     else:
-        if not oncePerStep(sprite, game, 'last_vertical_stop'):
+        if not oncePerStep(sprite, game, 't_last_vertical_stop'):
             return
         # Downward motion, so downward collision
         if sprite.velocity[1] > 0:
@@ -259,7 +259,7 @@ def wrapAround(sprite, partner, game, offset=0):
 
 def pullWithIt(sprite, partner, game):
     """ The partner sprite adds its movement to the sprite's. """
-    if not oncePerStep(sprite, game, 'lastpull'):
+    if not oncePerStep(sprite, game, 't_lastpull'):
         return
     tmp = sprite.lastrect
     v = unitVector(partner.lastdirection)
