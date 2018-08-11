@@ -255,6 +255,10 @@ class SpriteState(PrettyDict, UserDict):
 
 
 class GameState(UserDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.frozen = None
+
     @property
     def avatar_state(self):
         return self.data['sprites']['avatar'][0]
@@ -263,11 +267,15 @@ class GameState(UserDict):
         return self.data['ended']
 
     def freeze(self):
+        # Return cached frozen game state, since game states don't change
+        if self.frozen is not None:
+            return self.frozen
+
         # Take into account time, want to have time-insensitive equality
         time = self['time']
-        frozen = freeze_dict(self.data['sprites'],
+        self.frozen = freeze_dict(self.data['sprites'],
                              { SpriteState: partial(SpriteState.norm_time_hash, time=time) })
-        return frozen
+        return self.frozen
 
     def __eq__(self, other):
         """ Game state equality, should ignore time etc """
@@ -441,6 +449,7 @@ class BasicGame:
 
         # Empty out all known sprites
         self.sprite_registry.reset()
+        self.last_state = None
 
         # set up resources
         self.notable_resources = []
@@ -522,6 +531,7 @@ class BasicGame:
         self.kill_list.clear()
         if self.init_state:
             self.setGameState(self.init_state)
+        self.last_state = None
         # TODO rng?
 
 
@@ -614,6 +624,10 @@ class BasicGame:
     def getGameState(self, include_random_state=False) -> GameState:
         assert len(self.kill_list) == 0, 'Kill list not empty'
 
+        # Return cached state
+        if self.last_state is not None:
+            return self.last_state
+
         state = {
             'score': self.score,
             'time': self.time,
@@ -621,7 +635,10 @@ class BasicGame:
             'sprites': self.sprite_registry.get_state(),
         }
 
-        return GameState(state)
+        state = GameState(state)
+        self.last_state = state
+
+        return state
 
 
     def setGameState(self, state: GameState):
@@ -632,7 +649,8 @@ class BasicGame:
         This has the advantage of keeping the Python objects intact.
         """
         # TODO one day when I need the juice, remove this copy, carefully
-        state = copy.deepcopy(state)
+        # state = copy.deepcopy(state)
+        self.last_state = None
         self.sprite_registry.set_state(state.get('sprites'))
         for k, v in state.items():
             if k in ['sprites']: continue
@@ -708,9 +726,13 @@ class BasicGame:
                         assert False, "Huh, interesting"
 
                     if score:
-                        self.score += score
+                        self.add_score(score)
                     if sprite not in self.kill_list:
                         effect(sprite, other, self, **kwargs)
+
+
+    def add_score(self, score):
+        self.score += score
 
 
     def getPossibleActions(self) -> Dict[str, Action]:
@@ -784,12 +806,17 @@ class BasicGame:
         for t in self.terminations:
             self.ended, win = t.isDone(self)
             if self.ended:
+                # Terminations are allowed to specify a score
+                if t.scoreChange:
+                    self.add_score(t.scoreChange)
                 break
 
         if not headless:
             self._drawAll()
             self._update_display()
             # TODO once dirtyrects are back in, reset them here
+
+        self.last_state = None
 
 
     def _update_display(self):
@@ -873,8 +900,9 @@ class VGDLSprite:
         return SpriteState(state)
 
     def setGameState(self, state: SpriteState):
-        self._effect_data.clear()
-        self._effect_data.update(state.get('_effect_data'))
+        # self._effect_data.clear()
+        # self._effect_data.update(state.get('_effect_data'))
+        self._effect_data = state['_effect_data'].copy()
 
         for k, v in state.items():
             if k in ['_effect_data']: continue
@@ -1020,6 +1048,8 @@ class Immutable:
 
 
 class Termination:
+    scoreChange = 0
+
     """ Base class for all termination criteria. """
     def isDone(self, game):
         """ returns whether the game is over, with a win/lose flag """
