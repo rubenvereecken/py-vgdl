@@ -54,6 +54,16 @@ class VGDLPybrainEnvironment(Environment):
         return self.state_handler.get_observation()
 
 
+    def prune_action_set(self, actions):
+        if not hasattr(actions, '__iter__'):
+            actions = [actions]
+        for action in actions:
+            assert action in self.action_set, \
+                'Unknown action %s' % action
+            self.action_set.remove(action)
+        self.numActions = len(self.action_set)
+
+
     def performAction(self, action: Action):
         if not isinstance(action, Action):
             action = self.action_set[int(action)]
