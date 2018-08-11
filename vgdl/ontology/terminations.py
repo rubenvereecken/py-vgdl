@@ -27,10 +27,11 @@ class Timeout(Termination):
 
 class SpriteCounter(Termination):
     """ Game ends when the number of sprites of type 'stype' hits 'limit' (or below). """
-    def __init__(self, limit=0, stype=None, win=True):
+    def __init__(self, limit=0, stype=None, win=True, scoreChange=None):
         self.limit = limit
         self.stype = stype
         self.win = win
+        self.scoreChange = scoreChange
 
     def __repr__(self):
         return 'SpriteCounter(stype={})'.format(self.stype)
