@@ -323,7 +323,7 @@ class Action:
 
 
     def __repr__(self):
-        _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
+        _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else str(k)
         key_rep = ','.join(_key_name(k) for k in self.keys)
         return 'Action({})'.format(key_rep or 'noop')
 
@@ -877,7 +877,7 @@ class VGDLSprite:
         self.lastmove = 0
 
         # management of resources contained in the sprite
-        self.resources = defaultdict(lambda: 0)
+        self.resources = defaultdict(int)
 
         # TODO: Load images into a central dictionary to save loading a separate image for each object
         if self.img:
@@ -889,6 +889,10 @@ class VGDLSprite:
                 VGDL_GLOBAL_IMG_LIB[self.img] = img
             self.image = VGDL_GLOBAL_IMG_LIB[self.img]
             self.scale_image = pygame.transform.scale(self.image, (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
+
+
+    def __getstate__(self):
+        raise NotImplemented()
 
     def getGameState(self) -> SpriteState:
         state = { attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
