@@ -17,7 +17,8 @@ class OntologyRegistry:
     def register(self, key, cls):
         if key in self._register:
             # re-registering can have funky behaviour when classes are reloaded
-            raise KeyError('`{}` already registered'.format(cls.__name__))
+            # raise KeyError('`{}` already registered'.format(cls.__name__))
+            pass
         self._register[key] = cls
 
 

@@ -314,7 +314,7 @@ class Action:
                  -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys) )
 
     def __str__(self):
-        _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else k
+        _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else str(k)
         key_rep = ','.join(_key_name(k) for k in self.keys)
         if len(self.keys) <= 1:
             return key_rep or 'noop'
