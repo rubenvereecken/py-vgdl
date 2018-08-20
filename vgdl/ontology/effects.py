@@ -149,9 +149,6 @@ def wallStop(sprite, partner, game, friction=0):
         else:
             x_clip = partner.rect.right - sprite.rect.left
 
-        if old_delta.x == 0:
-            import ipdb; ipdb.set_trace()
-
         # TODO clean up unused factors
         rescale = (old_delta.x + x_clip) / old_delta.x
         # new_delta = old_delta * rescale
@@ -168,9 +165,6 @@ def wallStop(sprite, partner, game, friction=0):
             y_clip = partner.rect.top - sprite.rect.bottom
         else:
             y_clip = partner.rect.bottom - sprite.rect.top
-
-        if old_delta.y == 0:
-            import ipdb; ipdb.set_trace()
 
         rescale = (old_delta.y + y_clip) / old_delta.y
         # new_delta = old_delta.elementwise() * (1, rescale)

@@ -158,7 +158,9 @@ class SpriteRegistry:
 
         sprite_states = {}
         for sprite_type, sprites in self._live_sprites_by_key.items():
-            sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites]
+            # Do not save Immutables. Immutables are always alive, etc.
+            sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites \
+                                          if not isinstance(sprite, Immutable)]
         for sprite_type, sprites in self._dead_sprites_by_key.items():
             sprite_states[sprite_type] += [_sprite_state(sprite) for sprite in sprites]
 
@@ -178,7 +180,9 @@ class SpriteRegistry:
             'Known sprite keys should match'
 
         other_ids = set([sprite['id'] for sprites in state.values() for sprite in sprites])
-        known_ids = set(self._sprite_by_id.keys())
+        # Do not consider Immutables, and expect that they were not saved.
+        known_ids = set(id for id, sprite in self._sprite_by_id.items() \
+                        if not isinstance(sprite, Immutable))
         deleted_ids = known_ids.difference(other_ids)
         added_ids = other_ids.difference(known_ids)
 
@@ -648,8 +652,7 @@ class BasicGame:
         just overwrite their state when setting game state.
         This has the advantage of keeping the Python objects intact.
         """
-        # TODO one day when I need the juice, remove this copy, carefully
-        # state = copy.deepcopy(state)
+        # Careful, state is mutable but really shouldn't be
         self.last_state = None
         self.sprite_registry.set_state(state.get('sprites'))
         for k, v in state.items():
@@ -1030,13 +1033,12 @@ class Resource(VGDLSprite):
             return self.res_type
 
 
-class Immutable:
+class Immutable(VGDLSprite):
     """
     Class for sprites that we do not have to bother saving.
     It's a simple performance improvement but it seems to improve things a lot.
-
-    NOTE: for now, for backward compatibility, Immutables can still die.
     """
+    is_static = True
 
     def getGameState(self):
         return SpriteState(dict(alive=self.alive))
@@ -1077,3 +1079,6 @@ def _pickle_rect(r):
     return pygame.Rect, (*r.topleft, r.width, r.height)
 copyreg.pickle(Vector2, _pickle_vector)
 copyreg.pickle(pygame.Rect, _pickle_rect)
+
+from vgdl.registration import registry
+registry.register_class(Immutable)

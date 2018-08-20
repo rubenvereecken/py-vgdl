@@ -28,26 +28,28 @@ class PrettyDict:
         return '{}({})'.format(self.pretty_name or self.__class__.__name__, attributes)
 
 
-def freeze_dict(d, freezers={}):
+_is_dict = lambda d: isinstance(d, dict) or isinstance(d, UserDict)
+
+def freeze_dict(original, freezers={}):
     """
     - Assumes d is immutable
     - Assumes item ordering doesn't matter (ignores OrderedDict)
+    - Assumes lists are unordered. This is a big one actually
+        .. so how about you use tuples for sorted things? Hmm.
     """
-    _is_dict = lambda d: isinstance(d, dict) or isinstance(d, UserDict)
-    if not _is_dict(d):
-        return d
+    if not _is_dict(original):
+        return original
 
-    import copy
-    d = copy.deepcopy(d)
+    d = {}
 
-    for k, v in d.items():
+    for k, v in original.items():
         vtype = type(v)
         if vtype in freezers:
             d[k] = freezers[vtype](v)
         elif _is_dict(v):
             d[k] = freeze_dict(v, freezers)
         elif isinstance(v, list):
-            v = tuple(freeze_dict(el, freezers) for el in v)
+            v = frozenset(freeze_dict(el, freezers) for el in v)
             d[k] = v
         elif isinstance(v, pygame.Rect) or isinstance(v, pygame.math.Vector2):
             d[k] = tuple(v)

@@ -39,7 +39,7 @@ __all__ = [
 ]
 
 
-class Immovable(Immutable, VGDLSprite):
+class Immovable(VGDLSprite):
     """
     A gray square that does not budge. Can potentially die.
     For sprites that cannot die, consider using Immutable.
