@@ -1,0 +1,24 @@
+BasicGame
+    SpriteSet
+        moving > physicstype=GravityPhysics
+            avatar > PlatformerAvatar img=newset/man1 jump_strength=5
+        wall > Immutable img=oryx/wall1
+        goal > Immovable img=newset/flag1
+        ladder > Ladder img=newset/ladder2
+
+    TerminationSet
+        SpriteCounter stype=goal      win=True scoreChange=100
+        SpriteCounter stype=avatar    win=False scoreChange=-100
+
+    InteractionSet
+        avatar EOS  > killSprite
+        goal avatar > killSprite
+        moving wall > wallStop
+        avatar ladder > onLadder
+
+    LevelMapping
+        G > goal
+        ★ > goal
+        w > wall
+        A > avatar
+        H > ladder
