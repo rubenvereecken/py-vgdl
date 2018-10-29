@@ -15,6 +15,22 @@ Video Game Description Language.
 PyVGDL is an easily scriptable video game engine written in Python,
 ideal for artificial intelligence research.
 
+Given a [game description](examples/continuousphysics/platformer.txt),
+it allows you to turn something like
+```
+w              w
+w              w
+w              w
+w              w
+w   HwwwwHwwwwww
+w   H ww H     w
+wA  H ww H  G  w
+wwwwwwwwwwwwwwww
+```
+… into a human or AI-playable game:
+
+![level play](examples/continuousphysics/left_to_right_play.png)
+
 PyVGDL aims to be an engine first,
 interfacing with
 different frameworks
