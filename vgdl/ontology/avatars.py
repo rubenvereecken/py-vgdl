@@ -99,16 +99,16 @@ class HorizontalAvatar(MovingAvatar):
     def declare_possible_actions(cls):
         from pygame.locals import K_LEFT, K_RIGHT
         actions = {}
-        actions["LEFT"] = K_LEFT
-        actions["RIGHT"] = K_RIGHT
-        actions["NO_OP"] = 0
+        actions["LEFT"] = Action(K_LEFT)
+        actions["RIGHT"] = Action(K_RIGHT)
+        actions["NO_OP"] = Action()
         return actions
 
 
     def update(self, game):
         VGDLSprite.update(self, game)
         action = self._readAction(game)
-        if action in [RIGHT, LEFT]:
+        if action.as_vector() in [RIGHT, LEFT]:
             self.physics.activeMovement(self, action)
 
 class VerticalAvatar(MovingAvatar):
@@ -118,15 +118,15 @@ class VerticalAvatar(MovingAvatar):
     def declare_possible_actions(cls):
         from pygame.locals import K_UP, K_DOWN
         actions = {}
-        actions["UP"] = K_UP
-        actions["DOWN"] = K_DOWN
-        actions["NO_OP"] = 0
+        actions["UP"] = Action(K_UP)
+        actions["DOWN"] = Action(K_DOWN)
+        actions["NO_OP"] = Action()
         return actions
 
     def update(self, game):
         VGDLSprite.update(self, game)
         action = self._readAction(game)
-        if action in [UP, DOWN]:
+        if action.as_vector() in [UP, DOWN]:
             self.physics.activeMovement(self, action)
 
 class FlakAvatar(HorizontalAvatar, SpriteProducer):
@@ -136,8 +136,8 @@ class FlakAvatar(HorizontalAvatar, SpriteProducer):
     @classmethod
     def declare_possible_actions(cls):
         from pygame.locals import K_SPACE
-        actions = super()
-        actions["SPACE"] = K_SPACE
+        actions = super().declare_possible_actions()
+        actions["SPACE"] = Action(K_SPACE)
         return actions
 
     color = GREEN

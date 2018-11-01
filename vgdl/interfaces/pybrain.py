@@ -74,7 +74,8 @@ class VGDLPybrainEnvironment(Environment):
 class VGDLPybrainTask(EpisodicTask):
     """
     Our Task is really just a wrapper for the environment, which represents
-    a specific game with reward function and everything and is itself episodic.
+    a specific game with reward functi
+    on and everything and is itself episodic.
     """
 
     def getReward(self):
@@ -103,9 +104,11 @@ class SparseMDPObserver(wrapt.ObjectProxy):
         super().__init__(wrapped)
         self._obs_cache: Dict[Observation, int] = {}
 
-    def get_observation(self):
-        obs = self.__wrapped__.get_observation()
+    def get_observation(self, obs=None):
+        # Allow passing in an observation, to be cached.
+        # Otherwise get it from the underlying observer
+        if obs is None:
+            obs = self.__wrapped__.get_observation()
         if obs not in self._obs_cache:
-            self._obs_cache[obs] = [len(self._obs_cache)]
+            self._obs_cache[obs] = np.array([len(self._obs_cache)])
         return self._obs_cache[obs]
-

@@ -508,6 +508,8 @@ class BasicGame:
             self.screen.fill((0,0,0))
             self.background = self.screen.copy()
             self.display = pygame.display.set_mode(self.display_size, pygame.RESIZABLE, 32)
+            title_prefix = 'VGDL'
+            title = title_prefix + ' ' + title if title else title_prefix
             if title:
                 pygame.display.set_caption(title)
             # TODO there will probably be need for a separate background surface
@@ -705,6 +707,7 @@ class BasicGame:
                             self.score += score
                             effect(s1, None, self, **kwargs)
                         except Exception as e:
+                            print(e)
                             import ipdb; ipdb.set_trace()
                 continue
 
@@ -716,8 +719,10 @@ class BasicGame:
             if len(sprites) == 0 or len(others) == 0:
                 continue
 
-            if len(sprites) > len(others):
-                print(len(sprites), '>', len(others))
+            # TODO if this is True, it means we could be more efficient
+            # It is, depending on the game description
+            # if len(sprites) > len(others):
+            #     print(len(sprites), '>', len(others))
 
             for sprite in sprites:
                 for collision_i in sprite.rect.collidelistall(others):

@@ -7,6 +7,8 @@ from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Resource
 from vgdl.tools import oncePerStep
+# from vgdl.ontology.constants import
+from .constants import *
 
 
 # __all__ = []
