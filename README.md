@@ -1,6 +1,7 @@
 # PyVGDL
 
-A fork/reimplementation of the original
+A reimplementation on steroids
+of the original
 [py-vgdl](https://github.com/schaul/py-vgdl/)
 by Tom Schaul.
 
@@ -60,13 +61,12 @@ pip install 'git+https://github.com/rubenvereecken/py-vgdl/#egg=vgdl[pybrain]'
 The recommended way to install it if you want to play around
 with examples is through a local installation.
 ```bash
-# Gym
 git clone https://github.com/rubenvereecken/py-vgdl
 pip install -e 'py-vgdl[all]'
 ```
 
 ### Dependencies
-You'll need Python 3.6.
+You'll need Python >= 3.6.
 This is so we can have nice things.
 
 
@@ -79,8 +79,8 @@ continuous phyics.
 
 You probably want to use
 one of several standard interfaces:
-- OpenAI Gym interface (`vgdl.interfaces.gym`)
-- pybrain interface (`vgdl.interfaces.pybrain`)
+- [OpenAI Gym interface](vgdl/interfaces/gym)
+- [PyBrain interface](vgdl/interfaces/pybrain)
 
 Read ahead to figure out how best to get started with either.
 
