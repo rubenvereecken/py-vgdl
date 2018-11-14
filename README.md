@@ -47,14 +47,23 @@ continuous phyics.
 
 You probably want to use
 one of several standard interfaces:
-- OpenAI Gym interface
-- pybrain interface
+- OpenAI Gym interface (`vgdl.interfaces.gym`)
+- pybrain interface (`vgdl.interfaces.pybrain`)
+Read ahead to figure out how best to get started with either.
 
-Additionally,
-I keep a simple library
-for human [play](https://github.com/rubenvereecken/play)
-that allows one to try out several VGDL games.
-This will be folded into the main repository at some point.
+## Getting Started
+
+Example code is included that relies on VGDL's Gym interface
+to demonstrate the engine through human game play.
+Give it a go:
+```bash
+# Any of the games in vgdl/games will work
+python -m examples.humanplay.play_vgdl vgdl/games/aliens_lvl0.txt
+```
+Definitely check out
+[all the other examples](examples/README.md)
+demonstrating human play (with recording and replay),
+reinforcement learning, and planning.
 
 
 ## How does it relate to other frameworks
