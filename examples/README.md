@@ -14,12 +14,26 @@ then runs it with some custom code to handle human input.
 Any of the games in [`vgdl/games`](/vgdl/games) will work,
 so feel free to play around.
 
+
 ### Recording
 The human play module is set up
 to use the `gym_recording` package
 to save all traces to a `traces` directory.
 These can be used for replay
 and analysis.
+It's not a great package,
+nor is it decently maintained,
+but we support it.
+Feel free to write your own instead,
+it will probably save you a headache in the long run.
+Install a patched version using
+```bash
+pip install git+https://github.com/23pointsNorth/gym-recording.git
+```
+It will automatically be used if found.
+
+TODO: I have to port the code I have to read and replay traces.
+
 
 ### Playing your own games
 The human controller can also play non-standard games
