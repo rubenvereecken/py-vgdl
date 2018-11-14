@@ -4,7 +4,8 @@ from vgdl.interfaces.gym import VGDLEnv
 import os
 
 # Location of sample games
-DATA_DIR = os.path.join( os.path.dirname(__file__), 'vgdl', 'sample_games')
+import pkg_resources
+games_path = pkg_resources.resource_filename('vgdl', 'games')
 
 sample_games = [
     'aliens',
@@ -58,8 +59,8 @@ def register_sample_games():
                     id=name,
                     entry_point='vgdl.interfaces.gym:VGDLEnv',
                     kwargs={
-                        'game_file': os.path.join( DATA_DIR, game + '.txt'),
-                        'level_file': os.path.join( DATA_DIR, game + '_lvl0.txt'),
+                        'game_file': os.path.join(games_path, game + '.txt'),
+                        'level_file': os.path.join(games_path, game + '_lvl0.txt'),
                         'obs_type': obs_type,
                         'notable_sprites': classes[game],
                         'notable_resources': resources[game],
