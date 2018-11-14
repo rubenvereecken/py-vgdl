@@ -61,7 +61,10 @@ class SpriteRegistry:
             yield key, self.get_sprite_def(key)
 
     def get_sprite_def(self, key):
-        return self.classes[key], self.class_args[key], self.stypes[key]
+        try:
+            return self.classes[key], self.class_args[key], self.stypes[key]
+        except KeyError as e:
+            raise KeyError("Unknown sprite type '%s', verify your domain file" % key)
 
     def generate_id_number(self, key):
         count = len(self._live_sprites_by_key[key]) + len(self._dead_sprites_by_key[key])
