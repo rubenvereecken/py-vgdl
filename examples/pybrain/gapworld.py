@@ -5,7 +5,6 @@ import vgdl
 import vgdl.mdp
 from vgdl.ontology import MovingAvatar, RIGHT
 import vgdl.interfaces
-from vgdl.interfaces.pybrain import VGDLPybrainEnvironment, VGDLPybrainTask
 from vgdl.state import AbsoluteObserver, KeyValueObservation
 
 
@@ -64,6 +63,7 @@ def load_gapworld_game_and_level():
 
 
 def test_gapworld():
+    from vgdl.interfaces.pybrain import VGDLPybrainEnvironment, VGDLPybrainTask
     # Register the avatar first
     vgdl.registry.register_class(RightMovingJumpingAvatar)
     game = load_gapworld_game_and_level()

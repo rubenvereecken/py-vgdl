@@ -2,12 +2,11 @@ import sys
 import time
 import itertools
 import numpy as np
+import importlib
 import logging
 logger = logging.getLogger(__name__)
 
 import gym
-from gym_recording.wrappers import TraceRecordingWrapper
-from wrappers import AtariObservationWrapper
 
 
 class HumanController:
@@ -16,9 +15,14 @@ class HumanController:
         self.env = gym.make(env_name)
         if not env_name.startswith('vgdl'):
             logger.debug('Assuming Atari env, enable AtariObservationWrapper')
+            from .wrappers import AtariObservationWrapper
             self.env = AtariObservationWrapper(self.env)
-        if trace_path:
+        if trace_path is not None and importlib.util.find_spec('gym_recording') is not None:
+            from gym_recording.wrappers import TraceRecordingWrapper
             self.env = TraceRecordingWrapper(self.env, trace_path)
+        elif trace_path is not None:
+            logger.warn('trace_path provided but could not find the gym_recording package')
+
         self.fps = fps
         self.cum_reward = 0
 

@@ -9,7 +9,6 @@ import argparse
 import logging
 
 import gym
-from gym_recording.wrappers import TraceRecordingWrapper
 
 import vgdl.interfaces.gym
 from .human import HumanVGDLController

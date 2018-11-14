@@ -49,6 +49,7 @@ You probably want to use
 one of several standard interfaces:
 - OpenAI Gym interface (`vgdl.interfaces.gym`)
 - pybrain interface (`vgdl.interfaces.pybrain`)
+
 Read ahead to figure out how best to get started with either.
 
 ## Getting Started
