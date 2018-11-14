@@ -38,6 +38,38 @@ such as OpenAI Gym ([gym_vgdl](https://github.com/EndingCredits/gym_vgdl))
 and [pybrain](vgdl/interfaces/pybrain.py).
 
 
+## Installation
+The easiest way to install VGDL as a library
+with all its dependencies
+is to run
+```bash
+pip install 'git+https://github.com/rubenvereecken/py-vgdl/#egg=vgdl[all]'
+```
+Alternatively,
+if you know you will only be using
+the PyBrain or OpenAI Gym interface,
+run one of these
+to get just the necessary dependencies.
+```bash
+# Gym
+pip install 'git+https://github.com/rubenvereecken/py-vgdl/#egg=vgdl[gym]'
+# PyBrain
+pip install 'git+https://github.com/rubenvereecken/py-vgdl/#egg=vgdl[pybrain]'
+```
+
+The recommended way to install it if you want to play around
+with examples is through a local installation.
+```bash
+# Gym
+git clone https://github.com/rubenvereecken/py-vgdl
+pip install -e 'py-vgdl[all]'
+```
+
+### Dependencies
+You'll need Python 3.6.
+This is so we can have nice things.
+
+
 ## How do I use it?
 
 PyVGDL is excellent for designing your own problem environments
