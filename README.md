@@ -63,7 +63,8 @@ python -m examples.humanplay.play_vgdl vgdl/games/aliens_lvl0.txt
 Definitely check out
 [all the other examples](examples/README.md)
 demonstrating human play (with recording and replay),
-reinforcement learning, and planning.
+reinforcement learning, planning,
+and of course writing your own games to do any number of these things.
 
 
 ## How does it relate to other frameworks

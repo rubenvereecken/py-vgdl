@@ -83,3 +83,32 @@ python examples/pybrain/gapworld.py
 To just play Gap World yourself,
 see the example under "Playing your own games".
 
+
+## Writing your own games
+The simplest way for now
+is to look at existing games
+in [vgdl/games](/vgdl/games),
+along with their implementations
+in [vgdl/ontology](/vgdl/ontology).
+To write an avatar with new abilities for example,
+start off with an avatar implementation
+that does something close to what you want it to do
+and go from there.
+
+You will have to register these implementations before you can use them
+(by loading a domain description file).
+You can do so through the `OntologyRegistry`:
+
+```
+# If you have the class loaded already
+vgdl.registry.register_class(RightMovingJumpingAvatar)
+
+# If you want to register everything in a module
+import mygame.ontology as mygame
+vgdl.registry.register_all(mygame)
+
+# If you want to load a module from a string identifier
+import importlib
+module = importlib.import_module('mypkg.mygame.ontology')
+vgdl.registry.register_all(module)
+```
