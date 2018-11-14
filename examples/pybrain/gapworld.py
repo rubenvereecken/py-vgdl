@@ -32,7 +32,7 @@ class RightMovingJumpingAvatar(MovingAvatar):
 
         VGDLSprite.update(self, game)
 
-        if game.keystate[K_SPACE]:
+        if K_SPACE in game.active_keys:
             x = self.rect.x / game.block_size
             # Jump up to 2 far, but may be less if near end of corridor
             jump_size = min(2, game.width - x - 1)
