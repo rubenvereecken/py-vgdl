@@ -667,17 +667,13 @@ class BasicGame:
 
     def _clearAll(self, onscreen=True):
         """ Clears dead sprites from screen """
-        for s in set(self.kill_list):
-            if onscreen:
-                s._clear(self.screen, self.background, double=True)
-        if onscreen:
-            for s in self.sprite_registry.sprites():
-                s._clear(self.screen, self.background)
+        # for s in set(self.kill_list):
+        #     if onscreen:
+        #         s._clear(self.screen, self.background, double=True)
+        # if onscreen:
+        #     for s in self.sprite_registry.sprites():
+        #         s._clear(self.screen, self.background)
         self.kill_list.clear()
-
-    def _drawAll(self):
-        for s in self.sprite_registry.sprites():
-            s._draw(self)
 
     def _updateCollisionDict(self, changedsprite):
         for key in changedsprite.stypes:
@@ -705,7 +701,8 @@ class BasicGame:
             if g2 == "EOS":
                 ss1, l1 = ss[g1]
                 for s1 in ss1:
-                    if not pygame.Rect((0,0), self.screensize).contains(s1.rect):
+                    game_rect = pygame.Rect((0,0), (game.width, game.height))
+                    if not game_rect.contains(s1.rect):
                         try:
                             self.score += score
                             effect(s1, None, self, **kwargs)
@@ -758,7 +755,7 @@ class BasicGame:
         return avatar_cls.declare_possible_actions()
 
 
-    def tick(self, action: Union[Action, int], headless=None):
+    def tick(self, action: Union[Action, int], headless=True):
         """
         Actions are currently communicated to the rest of the program
         through game.keystate, which mimics pygame.key.get_pressed().
@@ -773,9 +770,6 @@ class BasicGame:
           'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
         if isinstance(action, int):
             action = Action(action)
-        # Sometimes you want to use the game's model to think ahead without vis
-        if headless is None:
-            headless = self.headless
 
         # This is required for game-updates to work properly
         self.time += 1
@@ -811,7 +805,7 @@ class BasicGame:
 
         # Clean up dead sprites
         # NOTE(ruben): This used to be before event handling in original code
-        self._clearAll(not headless)
+        self._clearAll()
 
         # Iterate Over Termination Criteria
         for t in self.terminations:
@@ -822,22 +816,7 @@ class BasicGame:
                     self.add_score(t.scoreChange)
                 break
 
-        if not headless:
-            self._drawAll()
-            self._update_display()
-            # TODO once dirtyrects are back in, reset them here
-
         self.last_state = None
-
-
-    def _update_display(self):
-        pygame.transform.scale(self.screen, self.display_size, self.display)
-        pygame.display.update()
-
-    def _force_display(self):
-        self._clearAll()
-        self._drawAll()
-        self._update_display()
 
 
 class VGDLSprite:
@@ -857,7 +836,7 @@ class VGDLSprite:
 
     state_attributes = ['rect', 'alive', 'resources', 'speed']
 
-    def __init__(self, key, id, pos, size=(10,10), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+    def __init__(self, key, id, pos, size=(1,1), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
         # Every sprite must have a key, an id, and a position
         self.key: str = key
         self.id: str  = id

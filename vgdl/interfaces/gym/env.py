@@ -78,6 +78,10 @@ class VGDLEnv(gym.Env):
 
         # For rendering purposes
         self.mode_initialised = None
+        from vgdl.render.pygame import PygameRenderer
+        # TODO get block_size from kwargs
+        self.renderer = PygameRenderer(self.game, self.game.block_size)
+        self.renderer.init_screen(zoom=5)
 
 
     @property
@@ -112,8 +116,8 @@ class VGDLEnv(gym.Env):
             return self.observer.get_observation().as_array()
 
     def step(self, a):
-        if not self.mode_initialised:
-            raise Exception('Please call `render` at least once for initialisation')
+        # if not self.mode_initialised:
+        #     raise Exception('Please call `render` at least once for initialisation')
         self.game.tick(self._action_keys[a])
         state = self._get_obs()
         reward = self.game.score - self.score_last
@@ -129,11 +133,14 @@ class VGDLEnv(gym.Env):
         return state
 
     def render(self, mode='human', close=False):
+        # TODO headless
         headless = mode != 'human'
         # Only initialise the screen once, vgdl will update from here on
-        if not self.mode_initialised == mode:
-            self.mode_initialised = mode
-            self.game.initScreen(headless, zoom=25 // self.game.block_size, title=self.level_name)
+        # if not self.mode_initialised == mode:
+        #     self.mode_initialised = mode
+        #     self.game.initScreen(headless, zoom=25 / self.game.block_size, title=self.level_name)
+        self.renderer.draw_all()
+        self.renderer.update_display()
 
         if close:
             pygame.display.quit()
