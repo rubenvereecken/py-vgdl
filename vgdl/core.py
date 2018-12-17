@@ -573,13 +573,12 @@ class BasicGame:
         return len(self.sprite_registry.with_stype(key)) - deleted
 
     def getSprites(self, key):
-        assert len(self.kill_list) == 0, 'Deprecated behaviour'
+        # assert len(self.kill_list) == 0, 'Deprecated behaviour'
         return self.sprite_registry.with_stype(key)
 
     def getAvatars(self):
         """ The currently alive avatar(s) """
         res = []
-        assert len(self.kill_list) == 0, 'Deprecated behaviour'
 
         for _, ss in self.sprite_registry.groups(include_dead=True):
             if ss and isinstance(ss[0], Avatar):
@@ -625,17 +624,6 @@ class BasicGame:
         for k, v in state.items():
             if k in ['sprites']: continue
             setattr(self, k, v)
-
-
-    def _clearAll(self, onscreen=True):
-        """ Clears dead sprites from screen """
-        # for s in set(self.kill_list):
-        #     if onscreen:
-        #         s._clear(self.screen, self.background, double=True)
-        # if onscreen:
-        #     for s in self.sprite_registry.sprites():
-        #         s._clear(self.screen, self.background)
-        self.kill_list.clear()
 
     def _updateCollisionDict(self, changedsprite):
         for key in changedsprite.stypes:
@@ -762,13 +750,11 @@ class BasicGame:
         for s in self.sprite_registry.sprites():
             s.update(self)
 
+        # Clear last turn's kill list, used by the renderer to clear sprites
+        self.kill_list.clear()
+
         # Handle Collision Effects
         self._eventHandling()
-
-        # Clean up dead sprites
-        # NOTE(ruben): This used to be before event handling in original code
-        # TODO currently just clears kill_list, figure out where that's useful
-        self._clearAll()
 
         # Iterate Over Termination Criteria
         for t in self.terminations:
@@ -826,6 +812,7 @@ class VGDLSprite:
                 self.__dict__[name] = value
             except:
                 print("WARNING: undefined parameter '%s' for sprite '%s'! "%(name, self.__class__.__name__))
+
         # how many timesteps ago was the last move?
         self.lastmove = 0
 
@@ -903,6 +890,7 @@ class VGDLSprite:
     def __repr__(self):
         return "{} `{}` at ({}, {})".format(self.key, self.id, *self.rect.topleft)
 
+
 class Avatar:
     """ Abstract superclass of all avatars. """
     shrinkfactor=0.15
@@ -910,6 +898,7 @@ class Avatar:
     def __init__(self):
         assert false
         self.actions = Avatar.declare_possible_actions()
+
 
 class Resource(VGDLSprite):
     """ A special type of object that can be present in the game in two forms, either
@@ -959,6 +948,7 @@ class Termination:
             return True, False
         else:
             return False, None
+
 
 class Physics:
     def __init__(self, gridsize):

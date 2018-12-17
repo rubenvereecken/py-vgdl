@@ -42,6 +42,14 @@ class PygameRenderer:
 
 
     def draw_all(self):
+        for s in self.game.kill_list:
+            self.clear_sprite(s)
+
+        # This is for games where a sprite can disappear and leave black
+        # background, mainly. Other games do not need clearing
+        for s in self.game.sprite_registry.sprites():
+            self.clear_sprite_last_if_necessary(s)
+
         for s in self.game.sprite_registry.sprites():
             self.draw_sprite(s)
 
@@ -59,16 +67,15 @@ class PygameRenderer:
             sprite_rect = sprite.rect
 
         if self.render_sprites and sprite.img:
-            assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
-            # self.scale_image = pygame.transform.scale(self.image,
-            #     (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
-            img = self.sprite_cache.get_sprite_of_size(sprite.img, self.block_size)
+            # assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
+            block_size = int((1-sprite.shrinkfactor) * self.block_size)
+            img = self.sprite_cache.get_sprite_of_size(sprite.img, block_size)
             self.screen.blit(img, sprite_rect)
         else:
             self.screen.fill(sprite.color, sprite_rect)
 
-        if sprite.resources:
-            assert False, 'TODO render resources'
+        # if sprite.resources:
+        #     assert False, 'TODO render resources'
 
 
     def draw_resources(self, sprite, sprite_rect):
@@ -89,10 +96,15 @@ class PygameRenderer:
 
 
     def clear_sprite(self, sprite):
-        # TODO if you get anything weird look at that 'double blitting'
         self.screen.blit(self.background, sprite.rect, sprite.rect)
-        # if double:
-        #     r = screen.blit(background, self.lastrect, self.lastrect)
+
+
+    def clear_sprite_last(self, sprite):
+        self.screen.blit(self.background, sprite.lastrect, sprite.lastrect)
+
+    def clear_sprite_last_if_necessary(self, s):
+        if s.rect != s.lastrect:
+            self.clear_sprite_last(s)
 
 
     def clear(self):
