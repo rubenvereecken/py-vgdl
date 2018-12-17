@@ -1,39 +1,46 @@
 import pygame
 
+from vgdl.render import SpriteLibrary
+
 
 class PygameRenderer:
-    def __init__(self, game, block_size):
+    def __init__(self, game, block_size, render_sprites=True):
         self.game = game
         # In pixels
         self.block_size = block_size
         self.screen_dims = (game.width * self.block_size, game.height * self.block_size)
+        self.render_sprites = render_sprites
+        if self.render_sprites:
+            self.sprite_cache = SpriteLibrary.default()
 
 
-    def init_screen(self, zoom, title=None):
+    def init_screen(self, headless, zoom, title=None):
+        self.headless = headless
+        # TODO remove zoom
         self.zoom = zoom
-        self.display_dims = (self.screen_dims[0] * zoom, self.screen_dims[1] * zoom)
+        # self.display_dims = (self.screen_dims[0] * zoom, self.screen_dims[1] * zoom)
+        self.display_dims = self.screen_dims
 
         # The screen surface will be used for drawing on
         # It will be displayed on the `display` surface, possibly magnified
         # The background is currently solely used for clearing away sprites
-        # self.background = pygame.Surface(self.screensize)
-        # if headless:
-        #     os.environ['SDL_VIDEODRIVER'] = 'dummy'
-        #     self.screen = pygame.display.set_mode((1,1))
-        #     self.display = None
-        # else:
-        self.screen = pygame.Surface(self.screen_dims)
-        self.screen.fill((0,0,0))
-        self.background = self.screen.copy()
-        self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
-        title_prefix = 'VGDL'
-        title = title_prefix + ' ' + title if title else title_prefix
-        if title:
-            pygame.display.set_caption(title)
+        if headless:
+            os.environ['SDL_VIDEODRIVER'] = 'dummy'
+            self.screen = pygame.display.set_mode((1,1))
+            self.display = None
+            self.background = pygame.Surface(self.screensize)
+        else:
+            self.screen = pygame.Surface(self.screen_dims)
+            self.screen.fill((0,0,0))
+            self.background = self.screen.copy()
+            self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+            title_prefix = 'VGDL'
+            title = title_prefix + ' ' + title if title else title_prefix
+            if title:
+                pygame.display.set_caption(title)
 
 
     def draw_all(self):
-        # TODO could be better
         for s in self.game.sprite_registry.sprites():
             self.render_sprite(s)
 
@@ -50,10 +57,12 @@ class PygameRenderer:
         else:
             sprite_rect = sprite.rect
 
-        # TODO sprites
-        # if sprite.img and game.render_sprites:
-        #     self.screen.blit(sprite.scale_image, sprite_rect)
-        self.screen.fill(sprite.color, sprite_rect)
+        if self.render_sprites and sprite.img:
+            assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
+            img = self.sprite_cache.get_sprite_of_size(sprite.img, self.block_size)
+            self.screen.blit(img, sprite_rect)
+        else:
+            self.screen.fill(sprite.color, sprite_rect)
         # TODO resources
 
 
