@@ -74,11 +74,11 @@ class PygameRenderer:
         else:
             self.screen.fill(sprite.color, sprite_rect)
 
-        # if sprite.resources:
-        #     assert False, 'TODO render resources'
+        if sprite.resources:
+            self.draw_resources(sprite, sprite_rect)
 
 
-    def draw_resources(self, sprite, sprite_rect):
+    def draw_resources(self, sprite, rect):
         """ Draw progress bars on the bottom third of the sprite """
         BLACK = (0, 0, 0)
         tot = len(sprite.resources)
@@ -90,8 +90,8 @@ class PygameRenderer:
             if prop != 0:
                 filled = pygame.Rect(rect.left+wiggle/2, offset, prop*(rect.width-wiggle), barheight)
                 rest   = pygame.Rect(rect.left+wiggle/2+prop*(rect.width-wiggle), offset, (1-prop)*(rect.width-wiggle), barheight)
-                screen.fill(self.game.resources_colors[r], filled)
-                screen.fill(BLACK, rest)
+                self.screen.fill(self.game.resources_colors[r], filled)
+                self.screen.fill(BLACK, rest)
                 offset += barheight
 
 
