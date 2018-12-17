@@ -77,11 +77,7 @@ class VGDLEnv(gym.Env):
             raise Exception('Unknown obs_type `{}`'.format(self._obs_type))
 
         # For rendering purposes
-        self.mode_initialised = None
-        from vgdl.render.pygame import PygameRenderer
-        # TODO get block_size from kwargs
-        self.renderer = PygameRenderer(self.game, self.game.block_size)
-        self.renderer.init_screen(zoom=5)
+        self.renderer = None
 
 
     @property
@@ -98,11 +94,6 @@ class VGDLEnv(gym.Env):
 
     def _draw_screen(self):
         self.game._drawAll()
-
-    def _update_display(self):
-        # Scale drawn surface onto rendered surface
-        pygame.transform.scale(self.screen, self.display_size, self.display)
-        pygame.display.update()
 
     def _get_image(self):
         # self._draw_screen()
@@ -135,21 +126,21 @@ class VGDLEnv(gym.Env):
     def render(self, mode='human', close=False):
         # TODO headless
         headless = mode != 'human'
-        # Only initialise the screen once, vgdl will update from here on
-        # if not self.mode_initialised == mode:
-        #     self.mode_initialised = mode
-        #     self.game.initScreen(headless, zoom=25 / self.game.block_size, title=self.level_name)
+        if self.renderer is None:
+            from vgdl.render.pygame import PygameRenderer
+            self.renderer = PygameRenderer(self.game, self.game.block_size)
+            self.renderer.init_screen(headless)
+
         self.renderer.draw_all()
         self.renderer.update_display()
 
         if close:
             pygame.display.quit()
         if mode == 'rgb_array':
+            raise NotImplemented
             img = self._get_image()
             return img
         elif mode == 'human':
-            # This happens inside game.tick
-            # self._update_display()
             return True
 
     def close(self):

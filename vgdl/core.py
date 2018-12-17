@@ -493,32 +493,6 @@ class BasicGame:
         self.init_state = self.getGameState()
 
 
-    def initScreen(self, headless, zoom=5, title=None):
-        self.headless = headless
-        self.zoom = zoom
-        self.display_size = (self.screensize[0] * zoom, self.screensize[1] * zoom)
-
-        # The screen surface will be used for drawing on
-        # It will be displayed on the `display` surface, possibly magnified
-        # The background is currently solely used for clearing away sprites
-        self.background = pygame.Surface(self.screensize)
-        if headless:
-            os.environ['SDL_VIDEODRIVER'] = 'dummy'
-            self.screen = pygame.display.set_mode((1,1))
-            self.display = None
-        else:
-            self.screen = pygame.Surface(self.screensize)
-            self.screen.fill((0,0,0))
-            self.background = self.screen.copy()
-            self.display = pygame.display.set_mode(self.display_size, pygame.RESIZABLE, 32)
-            title_prefix = 'VGDL'
-            title = title_prefix + ' ' + title if title else title_prefix
-            if title:
-                pygame.display.set_caption(title)
-            # TODO there will probably be need for a separate background surface
-            # once dirty optimisation is back in
-
-
     def _resize_display(self, target_size):
         # Doesn't actually work on quite a few systems
         # https://github.com/pygame/pygame/issues/201
@@ -785,7 +759,9 @@ class BasicGame:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.VIDEORESIZE:
-                self._resize_display(event.size)
+                # self._resize_display(event.size)
+                # TODO renderer should handle resize events
+                pass
 
         # Update Keypresses
         # Agents are updated during the update routine in their ontology files, this demends on BasicGame.keystate
@@ -794,7 +770,6 @@ class BasicGame:
         #     self.keystate[key] = 1
         # Slowly moving away from tight integration with pybrain, stop mimicking keystate
         self.active_keys = action.keys
-
 
         # Update Sprites
         for s in self.sprite_registry.sprites():
@@ -805,6 +780,7 @@ class BasicGame:
 
         # Clean up dead sprites
         # NOTE(ruben): This used to be before event handling in original code
+        # TODO currently just clears kill_list, figure out where that's useful
         self._clearAll()
 
         # Iterate Over Termination Criteria
@@ -878,7 +854,8 @@ class VGDLSprite:
                 img = pygame.image.load(pth)
                 VGDL_GLOBAL_IMG_LIB[self.img] = img
             self.image = VGDL_GLOBAL_IMG_LIB[self.img]
-            self.scale_image = pygame.transform.scale(self.image, (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
+            self.scale_image = pygame.transform.scale(self.image,
+                (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
 
 
     def __getstate__(self):

@@ -14,11 +14,8 @@ class PygameRenderer:
             self.sprite_cache = SpriteLibrary.default()
 
 
-    def init_screen(self, headless, zoom, title=None):
+    def init_screen(self, headless, title=None):
         self.headless = headless
-        # TODO remove zoom
-        self.zoom = zoom
-        # self.display_dims = (self.screen_dims[0] * zoom, self.screen_dims[1] * zoom)
         self.display_dims = self.screen_dims
 
         # The screen surface will be used for drawing on
@@ -26,7 +23,7 @@ class PygameRenderer:
         # The background is currently solely used for clearing away sprites
         if headless:
             os.environ['SDL_VIDEODRIVER'] = 'dummy'
-            self.screen = pygame.display.set_mode((1,1))
+            self.screen = pygame.display.set_mode(self.display_dims)
             self.display = None
             self.background = pygame.Surface(self.screensize)
         else:
@@ -68,7 +65,6 @@ class PygameRenderer:
 
     def clear_sprite(self, sprite):
         # TODO if you get anything weird look at that 'double blitting'
-        # TODO double
         self.screen.blit(self.background, sprite.rect, sprite.rect)
 
 
