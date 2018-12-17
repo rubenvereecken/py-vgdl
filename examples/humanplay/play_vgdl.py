@@ -26,7 +26,7 @@ def register_vgdl_env(domain_file, level_file, observer=None, blocksize=None):
         kwargs={
             'game_file': domain_file,
             'level_file': level_file,
-            'block_size': blocksize or 24,
+            'block_size': blocksize,
             'obs_type': observer or 'features',
         },
         timestep_limit=10000,
@@ -47,7 +47,8 @@ def main():
     parser.add_argument('--observer', '-s', type=str,
                         help="A vgdl.StateObserver class, format pkg.module.Class")
     parser.add_argument('--reps', default=1, type=int)
-    parser.add_argument('--blocksize', '-b', type=int)
+    parser.add_argument('--blocksize', '-b', default=24, type=int,
+                        help='Render block size [default 24]')
     parser.add_argument('--tracedir', type=str)
     parser.add_argument('--pause_on_finish', dest='pause_on_finish',
                         action='store_true', default=False)

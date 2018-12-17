@@ -20,6 +20,8 @@ class VGDLEnv(gym.Env):
                  level_file = None,
                  obs_type='image',
                  **kwargs):
+        # For rendering purposes only
+        self.render_block_size = kwargs.pop('block_size')
 
         # Variables
         self._obs_type = obs_type
@@ -76,7 +78,7 @@ class VGDLEnv(gym.Env):
         else:
             raise Exception('Unknown obs_type `{}`'.format(self._obs_type))
 
-        # For rendering purposes
+        # For rendering purposes, will be initialised by first `render` call
         self.renderer = None
 
 
@@ -128,7 +130,7 @@ class VGDLEnv(gym.Env):
         headless = mode != 'human'
         if self.renderer is None:
             from vgdl.render.pygame import PygameRenderer
-            self.renderer = PygameRenderer(self.game, self.game.block_size)
+            self.renderer = PygameRenderer(self.game, self.render_block_size)
             self.renderer.init_screen(headless)
 
         self.renderer.draw_all()

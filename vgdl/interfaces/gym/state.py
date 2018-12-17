@@ -15,7 +15,7 @@ class AvatarOrientedObserver(StateObserver):
         assert avatars
         avatar = avatars[0]
 
-        avatar_pos = self._rect_to_pos(avatar.rect)
+        avatar_pos = avatar.rect.topleft
         resources = [avatar.resources[r] for r in self._game.notable_resources]
 
         sprite_distances = []

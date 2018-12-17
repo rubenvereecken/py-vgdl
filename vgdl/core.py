@@ -369,8 +369,10 @@ class BasicGame:
     MAX_SPRITES = 10000
 
     title = None
+    # TODO
     seed = 123
-    block_size = 10
+    # Completely 2D worlds really just need a block size of 1
+    block_size = 1
     render_sprites = True
 
     default_mapping = { 'w': ['wall'], 'A': ['avatar'] }
@@ -651,7 +653,7 @@ class BasicGame:
             if g2 == "EOS":
                 ss1, l1 = ss[g1]
                 for s1 in ss1:
-                    game_rect = pygame.Rect((0,0), (game.width, game.height))
+                    game_rect = pygame.Rect((0,0), self.screensize)
                     if not game_rect.contains(s1.rect):
                         try:
                             self.score += score
@@ -786,6 +788,9 @@ class VGDLSprite:
     state_attributes = ['rect', 'alive', 'resources', 'speed']
 
     def __init__(self, key, id, pos, size=(1,1), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+        if not isinstance(size, tuple):
+            size = (size, size)
+
         # Every sprite must have a key, an id, and a position
         self.key: str = key
         self.id: str  = id

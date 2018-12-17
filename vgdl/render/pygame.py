@@ -1,4 +1,5 @@
 import pygame
+from pygame.math import Vector2
 
 from vgdl.render import SpriteLibrary
 
@@ -59,12 +60,17 @@ class PygameRenderer:
         pygame.display.update()
 
 
+    def calculate_render_rect(self, rect, shrinkfactor=0):
+        sprite_rect = pygame.Rect(Vector2(rect.topleft) * self.block_size,
+                                    Vector2(rect.size) * self.block_size)
+        if shrinkfactor != 0:
+            sprite_rect = sprite_rect.inflate(*(-Vector2(sprite_rect.size) * shrinkfactor))
+
+        return sprite_rect
+
+
     def draw_sprite(self, sprite):
-        if sprite.shrinkfactor != 0:
-            sprite_rect = sprite.rect.inflate(-sprite.rect.width*sprite.shrinkfactor,
-                                       -sprite.rect.height*sprite.shrinkfactor)
-        else:
-            sprite_rect = sprite.rect
+        sprite_rect = self.calculate_render_rect(sprite.rect, sprite.shrinkfactor)
 
         if self.render_sprites and sprite.img:
             # assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
@@ -96,11 +102,14 @@ class PygameRenderer:
 
 
     def clear_sprite(self, sprite):
-        self.screen.blit(self.background, sprite.rect, sprite.rect)
+        # Shrunk objects clear non-shrunk rectangles, I think that's alright
+        rect = self.calculate_render_rect(sprite.rect)
+        self.screen.blit(self.background, rect, rect)
 
 
     def clear_sprite_last(self, sprite):
-        self.screen.blit(self.background, sprite.lastrect, sprite.lastrect)
+        rect = self.calculate_render_rect(sprite.lastrect)
+        self.screen.blit(self.background, rect, rect)
 
     def clear_sprite_last_if_necessary(self, s):
         if s.rect != s.lastrect:
