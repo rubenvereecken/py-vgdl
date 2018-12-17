@@ -16,6 +16,10 @@ class PygameRenderer:
 
     def init_screen(self, headless, title=None):
         self.headless = headless
+        # Right now display_dims and screen_dims are the same,
+        # Likewise screen and display are interchangeable, for now.
+        # I think it'd be good to allow resizing, just keep screen the same
+        # and scale onto the resized display
         self.display_dims = self.screen_dims
 
         # The screen surface will be used for drawing on
@@ -39,7 +43,7 @@ class PygameRenderer:
 
     def draw_all(self):
         for s in self.game.sprite_registry.sprites():
-            self.render_sprite(s)
+            self.draw_sprite(s)
 
 
     def update_display(self):
@@ -47,7 +51,7 @@ class PygameRenderer:
         pygame.display.update()
 
 
-    def render_sprite(self, sprite):
+    def draw_sprite(self, sprite):
         if sprite.shrinkfactor != 0:
             sprite_rect = sprite.rect.inflate(-sprite.rect.width*sprite.shrinkfactor,
                                        -sprite.rect.height*sprite.shrinkfactor)
@@ -56,16 +60,39 @@ class PygameRenderer:
 
         if self.render_sprites and sprite.img:
             assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
+            # self.scale_image = pygame.transform.scale(self.image,
+            #     (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
             img = self.sprite_cache.get_sprite_of_size(sprite.img, self.block_size)
             self.screen.blit(img, sprite_rect)
         else:
             self.screen.fill(sprite.color, sprite_rect)
-        # TODO resources
+
+        if sprite.resources:
+            assert False, 'TODO render resources'
+
+
+    def draw_resources(self, sprite, sprite_rect):
+        """ Draw progress bars on the bottom third of the sprite """
+        BLACK = (0, 0, 0)
+        tot = len(sprite.resources)
+        barheight = rect.height/3.5/tot
+        offset = rect.top+2*rect.height/3.
+        for r in sorted(sprite.resources.keys()):
+            wiggle = rect.width/10.
+            prop = max(0,min(1,sprite.resources[r] / float(self.game.resources_limits[r])))
+            if prop != 0:
+                filled = pygame.Rect(rect.left+wiggle/2, offset, prop*(rect.width-wiggle), barheight)
+                rest   = pygame.Rect(rect.left+wiggle/2+prop*(rect.width-wiggle), offset, (1-prop)*(rect.width-wiggle), barheight)
+                screen.fill(self.game.resources_colors[r], filled)
+                screen.fill(BLACK, rest)
+                offset += barheight
 
 
     def clear_sprite(self, sprite):
         # TODO if you get anything weird look at that 'double blitting'
         self.screen.blit(self.background, sprite.rect, sprite.rect)
+        # if double:
+        #     r = screen.blit(background, self.lastrect, self.lastrect)
 
 
     def clear(self):
@@ -78,3 +105,15 @@ class PygameRenderer:
         self.clear()
         self.draw_all()
         self.update_display()
+
+
+    def _resize_display(self, target_size):
+        # Doesn't actually work on quite a few systems
+        # https://github.com/pygame/pygame/issues/201
+        w_factor = target_size[0] / self.display_dims[0]
+        h_factor = target_size[1] / self.display_dims[1]
+        factor = min(w_factor, h_factor)
+
+        self.display_dims = (int(self.display_dims[0] * factor),
+                             int(self.display_dims[1] * factor))
+        self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)

@@ -492,18 +492,6 @@ class BasicGame:
 
         self.init_state = self.getGameState()
 
-
-    def _resize_display(self, target_size):
-        # Doesn't actually work on quite a few systems
-        # https://github.com/pygame/pygame/issues/201
-        w_factor = target_size[0] / self.display_size[0]
-        h_factor = target_size[1] / self.display_size[1]
-        factor = min(w_factor, h_factor)
-
-        self.display_size = (int(self.display_size[0] * factor),
-                             int(self.display_size[1] * factor))
-        self.display = pygame.display.set_mode(self.display_size, pygame.RESIZABLE, 32)
-
     def reset(self):
         """
         Resets the environment. If a level is known, revert to its initial state.
@@ -759,7 +747,6 @@ class BasicGame:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.VIDEORESIZE:
-                # self._resize_display(event.size)
                 # TODO renderer should handle resize events
                 pass
 
@@ -845,19 +832,6 @@ class VGDLSprite:
         # management of resources contained in the sprite
         self.resources = defaultdict(int)
 
-        # TODO: Load images into a central dictionary to save loading a separate image for each object
-        if self.img:
-            if VGDL_GLOBAL_IMG_LIB.get(self.img) is None:
-                import pkg_resources
-                sprites_path = pkg_resources.resource_filename('vgdl', 'sprites')
-                pth = os.path.join(sprites_path, self.img + '.png')
-                img = pygame.image.load(pth)
-                VGDL_GLOBAL_IMG_LIB[self.img] = img
-            self.image = VGDL_GLOBAL_IMG_LIB[self.img]
-            self.scale_image = pygame.transform.scale(self.image,
-                (int(size[0] * (1-self.shrinkfactor)), int(size[1] * (1-self.shrinkfactor))))#.convert_alpha()
-
-
     def __getstate__(self):
         raise NotImplemented()
 
@@ -925,49 +899,6 @@ class VGDLSprite:
     @property
     def lastdirection(self):
         return (self.rect[0]-self.lastrect[0], self.rect[1]-self.lastrect[1])
-
-
-    def _draw(self, game):
-        screen = game.screen
-        if self.shrinkfactor != 0:
-            shrunk = self.rect.inflate(-self.rect.width*self.shrinkfactor,
-                                       -self.rect.height*self.shrinkfactor)
-        else:
-            shrunk = self.rect
-
-        # uncomment for debugging
-        #from .ontology import LIGHTGREEN
-        #rounded = roundedPoints(self.rect)
-        #pygame.draw.lines(screen, self.color, True, rounded, 2)
-
-        if self.img and game.render_sprites:
-            screen.blit(self.scale_image, shrunk)
-        else:
-            screen.fill(self.color, shrunk)
-        if self.resources:
-            self._drawResources(game, screen, shrunk)
-        #r = self.rect.copy()
-
-    def _drawResources(self, game, screen, rect):
-        """ Draw progress bars on the bottom third of the sprite """
-        from .ontology import BLACK
-        tot = len(self.resources)
-        barheight = rect.height/3.5/tot
-        offset = rect.top+2*rect.height/3.
-        for r in sorted(self.resources.keys()):
-            wiggle = rect.width/10.
-            prop = max(0,min(1,self.resources[r] / float(game.resources_limits[r])))
-            if prop != 0:
-                filled = pygame.Rect(rect.left+wiggle/2, offset, prop*(rect.width-wiggle), barheight)
-                rest   = pygame.Rect(rect.left+wiggle/2+prop*(rect.width-wiggle), offset, (1-prop)*(rect.width-wiggle), barheight)
-                screen.fill(game.resources_colors[r], filled)
-                screen.fill(BLACK, rest)
-                offset += barheight
-
-    def _clear(self, screen, background, double=True):
-        r = screen.blit(background, self.rect, self.rect)
-        if double:
-            r = screen.blit(background, self.lastrect, self.lastrect)
 
     def __repr__(self):
         return "{} `{}` at ({}, {})".format(self.key, self.id, *self.rect.topleft)
