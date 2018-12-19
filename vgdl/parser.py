@@ -21,9 +21,9 @@ class VGDLParser:
         self.sprite_registry = SpriteRegistry()
         self.game = sclass(self.sprite_registry, **args)
         for c in tree.children:
-            _, args = self._parseArgs(' '.join(c.content.split(' ')[1:]))
+            # _, args = self._parseArgs(' '.join(c.content.split(' ')[1:]))
             if c.content.startswith("SpriteSet"):
-                self.parseSprites(c.children, None, args)
+                self.parseSprites(c.children)
             if c.content == "InteractionSet":
                 self.parseInteractions(c.children)
             if c.content == "LevelMapping":

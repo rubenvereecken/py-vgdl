@@ -65,8 +65,9 @@ class PygameRenderer:
 
 
     def calculate_render_rect(self, rect, shrinkfactor=0):
-        sprite_rect = pygame.Rect(Vector2(rect.topleft) * self.block_size,
-                                    Vector2(rect.size) * self.block_size)
+        displacement_factor = self.block_size / max(rect.size)
+        sprite_rect = pygame.Rect(Vector2(rect.topleft) * displacement_factor,
+                                  (self.block_size, self.block_size))
         if shrinkfactor != 0:
             sprite_rect = sprite_rect.inflate(*(-Vector2(sprite_rect.size) * shrinkfactor))
 
