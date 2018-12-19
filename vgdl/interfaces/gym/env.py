@@ -94,17 +94,9 @@ class VGDLEnv(gym.Env):
         # In the spirit of the Atari environment, describe actions with strings
         return list(self._action_set.keys())
 
-    def _draw_screen(self):
-        self.game._drawAll()
-
-    def _get_image(self):
-        # self._draw_screen()
-        return np.flipud(np.rot90(pygame.surfarray.array3d(
-            self.game.screen).astype(np.uint8)))
-
     def _get_obs(self):
         if self._obs_type == 'image':
-            return self._get_image()
+            return self.renderer.get_image()
         else:
             return self.observer.get_observation().as_array()
 
@@ -126,7 +118,6 @@ class VGDLEnv(gym.Env):
         return state
 
     def render(self, mode='human', close=False):
-        # TODO headless
         headless = mode != 'human'
         if self.renderer is None:
             from vgdl.render.pygame import PygameRenderer
@@ -139,8 +130,7 @@ class VGDLEnv(gym.Env):
         if close:
             pygame.display.quit()
         if mode == 'rgb_array':
-            raise NotImplemented
-            img = self._get_image()
+            img = self.renderer.get_image()
             return img
         elif mode == 'human':
             return True

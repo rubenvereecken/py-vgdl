@@ -3,6 +3,9 @@ from pygame.math import Vector2
 
 from vgdl.render import SpriteLibrary
 
+import os
+import numpy as np
+
 
 class PygameRenderer:
     def __init__(self, game, block_size, render_sprites=True):
@@ -29,8 +32,8 @@ class PygameRenderer:
         if headless:
             os.environ['SDL_VIDEODRIVER'] = 'dummy'
             self.screen = pygame.display.set_mode(self.display_dims)
-            self.display = None
-            self.background = pygame.Surface(self.screensize)
+            self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+            self.background = pygame.Surface(self.screen_dims)
         else:
             self.screen = pygame.Surface(self.screen_dims)
             self.screen.fill((0,0,0))
@@ -56,6 +59,7 @@ class PygameRenderer:
 
 
     def update_display(self):
+        # TODO this could be quicker for headless
         pygame.transform.scale(self.screen, self.display_dims, self.display)
         pygame.display.update()
 
@@ -138,3 +142,8 @@ class PygameRenderer:
         self.display_dims = (int(self.display_dims[0] * factor),
                              int(self.display_dims[1] * factor))
         self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+
+
+    def get_image(self):
+        return np.flipud(np.rot90(pygame.surfarray.array3d(
+            self.screen).astype(np.uint8)))
