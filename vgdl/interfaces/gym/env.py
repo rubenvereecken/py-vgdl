@@ -4,7 +4,6 @@ import gym
 from gym import spaces
 import vgdl
 from vgdl.state import StateObserver
-import pygame
 import numpy as np
 from .list_space import list_space
 
@@ -120,7 +119,7 @@ class VGDLEnv(gym.Env):
     def render(self, mode='human', close=False):
         headless = mode != 'human'
         if self.renderer is None:
-            from vgdl.render.pygame import PygameRenderer
+            from vgdl.render import PygameRenderer
             self.renderer = PygameRenderer(self.game, self.render_block_size)
             self.renderer.init_screen(headless)
 
@@ -128,7 +127,7 @@ class VGDLEnv(gym.Env):
         self.renderer.update_display()
 
         if close:
-            pygame.display.quit()
+            self.renderer.close()
         if mode == 'rgb_array':
             img = self.renderer.get_image()
             return img
@@ -136,7 +135,7 @@ class VGDLEnv(gym.Env):
             return True
 
     def close(self):
-        pygame.display.quit()
+        self.renderer.close()
 
 
 

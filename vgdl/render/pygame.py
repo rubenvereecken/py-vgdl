@@ -148,3 +148,7 @@ class PygameRenderer:
     def get_image(self):
         return np.flipud(np.rot90(pygame.surfarray.array3d(
             self.screen).astype(np.uint8)))
+
+
+    def close(self):
+        pygame.display.quit()
