@@ -23,6 +23,8 @@ from typing import NewType, Optional, Union, Dict, List, Tuple
 
 VGDL_GLOBAL_IMG_LIB: Dict[str, str] = {}
 
+Color = NewType('Color', Tuple[int, int, int])
+
 class SpriteRegistry:
     """
     A registry that knows of all types of sprites from a game description,
@@ -226,13 +228,6 @@ class SpriteRegistry:
             import ipdb; ipdb.set_trace()
 
 
-
-
-# Currently an action is a pygame.key press, an index into pygame.key.get_pressed()
-# This may not fly anymore with actions that require multiple simultaneous key presses
-# Action = NewType('Action', int)
-Color = NewType('Color', Tuple[int, int, int])
-
 class SpriteState(PrettyDict, UserDict):
     # TODO be careful comparing SpriteStates, some attributes in _effect_data contain
     # timestamps that would cause equality to fail where we would want it to succeed
@@ -361,8 +356,9 @@ class ACTION:
 
 class BasicGame:
     """
-    Heavily integrated with pygame for both game mechanics
-    and visualisation both.
+    Minor reliance on pygame for collision detection,
+    hence we use pygame's integer rectangles.
+    Beware, only integer-sized and positioned rectangles possible.
 
     This regroups all the components of a game's dynamics, after parsing.
     """
@@ -741,11 +737,8 @@ class BasicGame:
                 pass
 
         # Update Keypresses
-        # Agents are updated during the update routine in their ontology files, this demends on BasicGame.keystate
-        # self.keystate = [0]* len(pygame.key.get_pressed())
-        # for key in action.keys:
-        #     self.keystate[key] = 1
-        # Slowly moving away from tight integration with pybrain, stop mimicking keystate
+        # Agents are updated during the update routine in their ontology files,
+        # this depends on BasicGame.active_keys
         self.active_keys = action.keys
 
         # Update Sprites
