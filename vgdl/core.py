@@ -691,8 +691,13 @@ class BasicGame:
         self.score += score
 
 
-    def getPossibleActions(self) -> Dict[str, Action]:
-        """ Assume actions don't change """
+    def getPossibleActions(self) -> Dict[Tuple[int], Action]:
+        """
+        Assume actions don't change
+
+        This used to return a Dict[str, Action],
+        but I think it's a hassle to upkeep the strings.
+        """
         from vgdl.core import Avatar
         try:
             avatar_cls = next(cls for cls in self.sprite_registry.classes.values() \
@@ -700,7 +705,9 @@ class BasicGame:
         except StopIteration:
             'No avatar found'
             import ipdb; ipdb.set_trace()
-        return avatar_cls.declare_possible_actions()
+        # return avatar_cls.declare_possible_actions()
+        action_dict = avatar_cls.declare_possible_actions()
+        return { a.keys: a for a in action_dict.values() }
 
 
     def tick(self, action: Union[Action, int], headless=True):

@@ -60,6 +60,8 @@ class MovingAvatar(VGDLSprite, Avatar):
         actions represented by multi-dimensional vectors (i.e. keypresses).
         """
         from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
+        # Relies on Python 3.6 dictionary ordering, so actions are always
+        # considered in the same order
         actions = {}
         actions["UP"] = Action(K_UP)
         actions["DOWN"] = Action(K_DOWN)
