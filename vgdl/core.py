@@ -154,6 +154,13 @@ class SpriteRegistry:
             return [s for _, sprites in self.groups(include_dead) for s in sprites if stype in s.stypes]
 
 
+    def get_avatar(self):
+        """
+        Returns the game single avatar, fails if a different amount are present
+        """
+
+
+
     def get_state(self) -> dict:
         def _sprite_state(sprite):
             return dict(
@@ -703,9 +710,10 @@ class BasicGame:
             avatar_cls = next(cls for cls in self.sprite_registry.classes.values() \
                               if issubclass(cls, Avatar))
         except StopIteration:
-            'No avatar found'
-            import ipdb; ipdb.set_trace()
-        # return avatar_cls.declare_possible_actions()
+            raise Exception('No avatar class registered')
+
+        # Alternatively, use pygame names for keys instead of the key codes
+        pygame_keys = { k: v for k, v in vars(pygame) if k.startswith('K_') }
         action_dict = avatar_cls.declare_possible_actions()
         return { a.keys: a for a in action_dict.values() }
 
