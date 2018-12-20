@@ -603,14 +603,14 @@ class BasicGame:
         if self.last_state is not None:
             return self.last_state
 
-        state = {
+        state_dict = {
             'score': self.score,
             'time': self.time,
             'ended': self.ended,
             'sprites': self.sprite_registry.get_state(),
         }
 
-        state = GameState(state)
+        state = GameState(state_dict)
         self.last_state = state
 
         return state
@@ -713,7 +713,7 @@ class BasicGame:
             raise Exception('No avatar class registered')
 
         # Alternatively, use pygame names for keys instead of the key codes
-        pygame_keys = { k: v for k, v in vars(pygame) if k.startswith('K_') }
+        pygame_keys = { k: v for k, v in vars(pygame).items() if k.startswith('K_') }
         action_dict = avatar_cls.declare_possible_actions()
         return { a.keys: a for a in action_dict.values() }
 
