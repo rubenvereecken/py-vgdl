@@ -448,7 +448,6 @@ class BasicGame:
 
 
     def buildLevel(self, lstr):
-        from .ontology import stochastic_effects
         self.levelstring = lstr
         lines = [l for l in lstr.split("\n") if len(l)>0]
         lengths = list(map(len, lines))
@@ -482,9 +481,8 @@ class BasicGame:
                 if key is not None:
                     pos = (col*self.block_size, row*self.block_size)
                     self.create_sprites(key, pos)
-        for effect in self.collision_eff:
-            if effect in stochastic_effects or effect.call_fn in stochastic_effects:
-                self.is_stochastic = True
+
+        self.is_stochastic = any(e.is_stochastic for e in self.collision_eff)
 
         # Used only for determining whether sprites should be erased
         self.kill_list.clear()
@@ -974,6 +972,8 @@ class Effect:
     An effect will only be called for sprites that match
     the actor and actee (acted-upon) stypes.
     """
+    is_stochastic = False
+
     def __init__(self, actor_stype, actee_stype, args: dict):
         self.actor_stype = actor_stype
         self.actee_stype = actee_stype
@@ -995,6 +995,12 @@ class FunctionalEffect(Effect):
 
     def __call__(self, sprite, partner, game):
         return self.call_fn(sprite, partner, game)
+
+    @property
+    def is_stochastic(self):
+        # This is all old-style, assume nothing gets added to stochastic_effects
+        from .ontology import stochastic_effects
+        return self.call_fn in stochastic_effects
 
 
 class Physics:
