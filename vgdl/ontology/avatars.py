@@ -250,7 +250,7 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
             return self.resources[self.ammo] > 0
         return False
 
-    def _reduceAmmo(self):
+    def _spend_ammo(self):
         if self.ammo is not None and self.ammo in self.resources:
             self.resources[self.ammo] -= 1
 
@@ -263,7 +263,7 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
             if sprite and isinstance(sprite, OrientedSprite):
                 sprite.orientation = unitVector(self.orientation)
 
-            self._reduceAmmo()
+            self._spend_ammo()
 
 class AimedAvatar(ShootAvatar):
     """ Can change the direction of firing, but not move. """

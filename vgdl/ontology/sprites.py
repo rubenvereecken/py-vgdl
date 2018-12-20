@@ -67,6 +67,7 @@ class Flicker(VGDLSprite):
     def update(self, game):
         VGDLSprite.update(self, game)
         if self._age > self.limit:
+            print('bbye', self._age)
             game.kill_sprite(self)
         self._age += 1
 

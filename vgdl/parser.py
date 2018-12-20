@@ -1,7 +1,9 @@
-from .tools import Node, indentTreeParser
-from .core import BasicGame
+from types import FunctionType
+
+from vgdl.tools import Node, indentTreeParser
 from vgdl import registry, ontology
 from vgdl.core import BasicGame, SpriteRegistry
+from vgdl.core import Effect, FunctionalEffect, Termination
 
 registry.register_all(ontology)
 registry.register_class(BasicGame)
@@ -51,10 +53,20 @@ class VGDLParser:
                 pair, edef = [x.strip() for x in inode.content.split(">")]
                 eclass, args = self._parseArgs(edef)
                 objs = [x.strip() for x in pair.split(" ") if len(x)>0]
+
+                # Create an effect for each actee
                 for obj in objs[1:]:
-                    self.game.collision_eff.append(tuple([objs[0], obj, eclass, args]))
+                    args = [objs[0], obj, args]
+                    if isinstance(eclass, FunctionType):
+                        effect = FunctionalEffect(eclass, *args)
+                    else:
+                        assert issubclass(eclass, Effect)
+                        effect = eclass(*args)
+
+                    self.game.collision_eff.append(effect)
+
                 if self.verbose:
-                    print("Collision", pair, "has effect:", edef)
+                    print("Collision", pair, "has effect:", effect)
 
     def parseTerminations(self, tnodes):
         for tn in tnodes:

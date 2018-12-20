@@ -482,8 +482,8 @@ class BasicGame:
                 if key is not None:
                     pos = (col*self.block_size, row*self.block_size)
                     self.create_sprites(key, pos)
-        for _, _, effect, _ in self.collision_eff:
-            if effect in stochastic_effects:
+        for effect in self.collision_eff:
+            if effect in stochastic_effects or effect.call_fn in stochastic_effects:
                 self.is_stochastic = True
 
         # Used only for determining whether sprites should be erased
@@ -563,7 +563,7 @@ class BasicGame:
         filter_nones = lambda l: filter(lambda el: el, l)
         return list(filter_nones(self.create_sprite(key, pos) for key in keys))
 
-    def kill_sprite(self, sprite):
+    def kill_sprite(self, sprite: 'VGDLSprite'):
         self.kill_list.append(sprite)
         self.sprite_registry.kill_sprite(sprite)
 
@@ -638,7 +638,11 @@ class BasicGame:
     def _eventHandling(self):
         self.lastcollisions: Dict[str, Tuple['VGDLSprite',int]] = {}
         ss = self.lastcollisions
-        for g1, g2, effect, kwargs in self.collision_eff:
+        for effect in self.collision_eff:
+            g1 = effect.actor_stype
+            g2 = effect.actee_stype
+            kwargs = effect.args
+
             # build the current sprite lists (if not yet available)
             for g in [g1, g2]:
                 if g not in ss:
@@ -756,12 +760,14 @@ class BasicGame:
         # this depends on BasicGame.active_keys
         self.active_keys = action.keys
 
+        # Clear last turn's kill list, used by the renderer to clear sprites
+        # Things can die during update and subsequent _eventHandling,
+        # so this clears previous tick's kill list
+        self.kill_list.clear()
+
         # Update Sprites
         for s in self.sprite_registry.sprites():
             s.update(self)
-
-        # Clear last turn's kill list, used by the renderer to clear sprites
-        self.kill_list.clear()
 
         # Handle Collision Effects
         self._eventHandling()
@@ -961,6 +967,34 @@ class Termination:
             return True, False
         else:
             return False, None
+
+class Effect:
+    """
+    Effects are called during event handling, which is collision-based.
+    An effect will only be called for sprites that match
+    the actor and actee (acted-upon) stypes.
+    """
+    def __init__(self, actor_stype, actee_stype, args: dict):
+        self.actor_stype = actor_stype
+        self.actee_stype = actee_stype
+        self.args = args
+
+    def __call__(self, sprite, partner, game):
+        raise NotImplementedError
+
+class FunctionalEffect(Effect):
+    """
+    DEPRECATED.
+
+    Old-style effect, implemented with a function.
+    The parser will use this when it finds effects that are functions.
+    """
+    def __init__(self, fn, *args):
+        super().__init__(*args)
+        self.call_fn = fn
+
+    def __call__(self, sprite, partner, game):
+        return self.call_fn(sprite, partner, game)
 
 
 class Physics:
