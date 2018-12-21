@@ -403,7 +403,7 @@ class BasicGame:
         # for reading levels
         self.char_mapping = {}
         # termination criteria
-        self.terminations = [Termination()]
+        self.terminations = []
         # resource properties, used to draw resource bar on the avatar sprite
         self.resources_limits = defaultdict(lambda: 1)
         self.resources_colors = defaultdict(lambda: GOLD)
@@ -640,20 +640,12 @@ class BasicGame:
         for effect in self.collision_eff:
             g1 = effect.actor_stype
             g2 = effect.actee_stype
-            kwargs = effect.args
 
             # build the current sprite lists (if not yet available)
             for g in [g1, g2]:
                 if g not in ss:
                     sprites = self.sprite_registry.with_stype(g)
                     ss[g] = (sprites, len(sprites))
-
-            # score argument is not passed along to the effect function
-            score = 0
-            if 'scoreChange' in kwargs:
-                kwargs = kwargs.copy()
-                score = kwargs['scoreChange']
-                del kwargs['scoreChange']
 
             # special case for end-of-screen
             if g2 == "EOS":
@@ -662,8 +654,8 @@ class BasicGame:
                     game_rect = pygame.Rect((0,0), self.screensize)
                     if not game_rect.contains(s1.rect):
                         try:
-                            self.score += score
-                            effect(s1, None, self, **kwargs)
+                            self.add_score(effect.score)
+                            effect(s1, None, self)
                         except Exception as e:
                             print(e)
                             import ipdb; ipdb.set_trace()
@@ -691,10 +683,9 @@ class BasicGame:
                     elif sprite == other:
                         assert False, "Huh, interesting"
 
-                    if score:
-                        self.add_score(score)
+                    self.add_score(effect.score)
                     if sprite not in self.kill_list:
-                        effect(sprite, other, self, **kwargs)
+                        effect(sprite, other, self)
 
 
     def add_score(self, score):
@@ -785,8 +776,7 @@ class BasicGame:
             self.ended, win = t.isDone(self)
             if self.ended:
                 # Terminations are allowed to specify a score
-                if t.scoreChange:
-                    self.add_score(t.scoreChange)
+                self.add_score(t.score)
                 break
 
         self.last_state = None
@@ -966,7 +956,9 @@ class Immutable(VGDLSprite):
 
 
 class Termination:
-    scoreChange = 0
+    def __init__(self, win, scoreChange=0):
+        self.win = win
+        self.score = scoreChange
 
     """ Base class for all termination criteria. """
     def isDone(self, game):
@@ -985,10 +977,10 @@ class Effect:
     """
     is_stochastic = False
 
-    def __init__(self, actor_stype, actee_stype, args: dict):
+    def __init__(self, actor_stype, actee_stype, scoreChange=0):
         self.actor_stype = actor_stype
         self.actee_stype = actee_stype
-        self.args = args
+        self.score = scoreChange
 
     def __call__(self, sprite, partner, game):
         raise NotImplementedError
@@ -1000,8 +992,8 @@ class FunctionalEffect(Effect):
     Old-style effect, implemented with a function.
     The parser will use this when it finds effects that are functions.
     """
-    def __init__(self, fn, *args):
-        super().__init__(*args)
+    def __init__(self, fn, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.call_fn = fn
 
     def __call__(self, sprite, partner, game):

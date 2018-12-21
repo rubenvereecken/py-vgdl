@@ -15,7 +15,8 @@ __all__ = [
 
 
 class Timeout(Termination):
-    def __init__(self, limit=0, win=False):
+    def __init__(self, limit=0):
+        super().__init__(**kwargs)
         self.limit = limit
         self.win = win
 
@@ -27,11 +28,10 @@ class Timeout(Termination):
 
 class SpriteCounter(Termination):
     """ Game ends when the number of sprites of type 'stype' hits 'limit' (or below). """
-    def __init__(self, limit=0, stype=None, win=True, scoreChange=None):
+    def __init__(self, limit=0, stype=None):
+        super().__init__(**kwargs)
         self.limit = limit
         self.stype = stype
-        self.win = win
-        self.scoreChange = scoreChange
 
     def __repr__(self):
         return 'SpriteCounter(stype={})'.format(self.stype)
@@ -45,8 +45,8 @@ class SpriteCounter(Termination):
 class MultiSpriteCounter(Termination):
     """ Game ends when the sum of all sprites of types 'stypes' hits 'limit'. """
     def __init__(self, limit=0, win=True, **kwargs):
+        super().__init__(win)
         self.limit = limit
-        self.win = win
         self.stypes = kwargs.values()
 
     def isDone(self, game):

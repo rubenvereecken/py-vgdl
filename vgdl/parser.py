@@ -56,12 +56,13 @@ class VGDLParser:
 
                 # Create an effect for each actee
                 for obj in objs[1:]:
-                    args = [objs[0], obj, kwargs]
+                    args = [objs[0], obj]
+
                     if isinstance(eclass, FunctionType):
-                        effect = FunctionalEffect(eclass, *args)
+                        effect = FunctionalEffect(eclass, *args, **kwargs)
                     else:
                         assert issubclass(eclass, Effect)
-                        effect = eclass(*args)
+                        effect = eclass(*args, **kwargs)
 
                     self.game.collision_eff.append(effect)
 
