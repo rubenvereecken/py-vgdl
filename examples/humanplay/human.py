@@ -10,7 +10,7 @@ import gym
 
 
 class HumanController:
-    def __init__(self, env_name, trace_path=None, fps=25):
+    def __init__(self, env_name, trace_path=None, fps=15):
         self.env_name = env_name
         self.env = gym.make(env_name)
         if not env_name.startswith('vgdl'):

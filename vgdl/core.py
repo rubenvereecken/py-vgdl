@@ -11,7 +11,7 @@ from pygame.math import Vector2
 import random
 from .tools import Node, indentTreeParser, PrettyDict, freeze_dict
 from .tools import roundedPoints
-from collections import defaultdict, UserDict
+from collections import defaultdict, UserDict, deque
 import math
 import numpy as np
 import os
@@ -407,12 +407,14 @@ class BasicGame:
         # termination criteria
         self.terminations = [Termination()]
         # resource properties, used to draw resource bar on the avatar sprite
-        self.resources_limits = defaultdict(lambda: 2)
+        self.resources_limits = defaultdict(lambda: 1)
         self.resources_colors = defaultdict(lambda: GOLD)
 
         self.random_generator = random.Random(self.seed)
         self.is_stochastic = False
         self.init_state = None
+        # Can add sprites to this queue to update during this tick
+        self.update_queue = deque()
         self.reset()
 
 
@@ -506,6 +508,7 @@ class BasicGame:
         if self.init_state:
             self.setGameState(self.init_state)
         self.last_state = None
+        self.update_queue.clear()
         # TODO rng?
 
 
@@ -764,7 +767,16 @@ class BasicGame:
         self.kill_list.clear()
 
         # Update Sprites
+        # By default a newly created sprite won't get updated until next tick
+        # Sometimes you want instantaneous results, so add sprite to the live
+        # update queue
+        self.update_queue.clear()
         for s in self.sprite_registry.sprites():
+            self.update_queue.append(s)
+
+        # While loop because it can keep growing, for loops are fickle
+        while self.update_queue:
+            s = self.update_queue.popleft()
             s.update(self)
 
         # Handle Collision Effects

@@ -240,10 +240,10 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
 
     def update(self, game):
         OrientedAvatar.update(self, game)
-        if self._hasAmmo():
+        if self._has_ammo():
             self._shoot(game)
 
-    def _hasAmmo(self):
+    def _has_ammo(self):
         if self.ammo is None:
             return True
         elif self.ammo in self.resources:
@@ -258,6 +258,7 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
         from pygame.locals import K_SPACE
         if self.stype and K_SPACE in game.active_keys:
             u = unitVector(self.orientation)
+
             sprite = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
                                                        self.lastrect.top + u[1] * self.lastrect.size[1]))
             if sprite and isinstance(sprite, OrientedSprite):
