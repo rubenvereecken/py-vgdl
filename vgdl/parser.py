@@ -51,12 +51,12 @@ class VGDLParser:
         for inode in inodes:
             if ">" in inode.content:
                 pair, edef = [x.strip() for x in inode.content.split(">")]
-                eclass, args = self._parseArgs(edef)
+                eclass, kwargs = self._parseArgs(edef)
                 objs = [x.strip() for x in pair.split(" ") if len(x)>0]
 
                 # Create an effect for each actee
                 for obj in objs[1:]:
-                    args = [objs[0], obj, args]
+                    args = [objs[0], obj, kwargs]
                     if isinstance(eclass, FunctionType):
                         effect = FunctionalEffect(eclass, *args)
                     else:
