@@ -21,8 +21,6 @@ import logging
 from functools import partial
 from typing import NewType, Optional, Union, Dict, List, Tuple
 
-VGDL_GLOBAL_IMG_LIB: Dict[str, str] = {}
-
 Color = NewType('Color', Tuple[int, int, int])
 
 class SpriteRegistry:
@@ -827,7 +825,8 @@ class VGDLSprite:
         self.physics          = self.physicstype(size)
         self.speed            = speed or self.speed
         self.cooldown         = cooldown or self.cooldown
-        self.img              = 0
+        self.img              = None
+        self.img_orient       = None
         # TODO rng
         self.color = color or self.color
         # self.color            = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))

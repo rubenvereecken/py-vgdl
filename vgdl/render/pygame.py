@@ -2,6 +2,7 @@ import pygame
 from pygame.math import Vector2
 
 from vgdl.render import SpriteLibrary
+from vgdl.ontology.constants import RIGHT
 
 import os
 import numpy as np
@@ -81,6 +82,17 @@ class PygameRenderer:
             # assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
             block_size = int((1-sprite.shrinkfactor) * self.block_size)
             img = self.sprite_cache.get_sprite_of_size(sprite.img, block_size)
+
+            if hasattr(sprite, 'orientation'):
+                # Assume by default images face right
+                img_orientation = sprite.img_orient or RIGHT
+                angle = img_orientation.angle_to(sprite.orientation)
+                if abs(angle / 180) == 1:
+                    # A flip will likely look nicer than a rotate
+                    img = pygame.transform.flip(img, True, False)
+                else:
+                    img = pygame.transform.rotate(img, -angle)
+
             self.screen.blit(img, sprite_rect)
         else:
             self.screen.fill(sprite.color, sprite_rect)
