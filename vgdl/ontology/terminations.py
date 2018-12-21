@@ -10,6 +10,7 @@ from vgdl.core import Termination
 __all__ = [
     'SpriteCounter',
     'MultiSpriteCounter',
+    'ResourceCounter',
     'Timeout',
 ]
 
@@ -55,3 +56,15 @@ class MultiSpriteCounter(Termination):
         else:
             return False, None
 
+
+class ResourceCounter(Termination):
+    def __init__(self, stype, limit, **kwargs):
+        super().__init__(**kwargs)
+        self.stype = stype
+        self.limit = limit
+
+    def isDone(self, game):
+        avatar = game.getAvatars()[0]
+        satisfied = avatar.resources.get(self.stype, 0) >= self.limit
+
+        return satisfied, self.win
