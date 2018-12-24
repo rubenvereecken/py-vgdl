@@ -49,4 +49,12 @@ class OntologyRegistry:
             raise TypeError('Not sure how to register %s of type %s' % (module, type(module)))
 
 
+    def register_from_string(self, module: str):
+        """ module is expected to be a dot-separated Python module spec """
+        import importlib
+        module = importlib.import_module(module)
+        self.register_all(module)
+
+
+
 registry = OntologyRegistry()

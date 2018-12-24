@@ -56,10 +56,8 @@ def main():
     args = parser.parse_args()
 
     if args.ontology is not None:
-        import importlib
-        module = importlib.import_module(args.ontology)
         import vgdl
-        vgdl.registry.register_all(module)
+        vgdl.registry.register_from_string(args.ontology)
 
     if args.observer is not None:
         import importlib

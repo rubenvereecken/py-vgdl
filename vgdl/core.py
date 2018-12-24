@@ -20,6 +20,7 @@ import copy
 import logging
 from functools import partial
 from typing import NewType, Optional, Union, Dict, List, Tuple
+import inspect
 
 Color = NewType('Color', Tuple[int, int, int])
 
@@ -156,7 +157,17 @@ class SpriteRegistry:
         """
         Returns the game single avatar, fails if a different amount are present
         """
+        res = []
 
+        for _, ss in self.groups(include_dead=True):
+            if ss and self.is_avatar(ss[0]):
+                return ss[0]
+
+    def is_avatar(self, sprite):
+        return self.is_avatar_cls(sprite.__class__)
+
+    def is_avatar_cls(self, cls):
+        return any('Avatar' in cls_name for cls_name in (parent.__name__ for parent in inspect.getmro(cls)))
 
 
     def get_state(self) -> dict:
@@ -585,11 +596,16 @@ class BasicGame:
         res = []
 
         for _, ss in self.sprite_registry.groups(include_dead=True):
-            if ss and isinstance(ss[0], Avatar):
+            if ss and self.is_avatar(ss[0]):
                 res.extend(ss)
 
         return res
 
+    def is_avatar(self, sprite):
+        return self.is_avatar_cls(sprite.__class__)
+
+    def is_avatar_cls(self, cls):
+        return any('Avatar' in cls_name for cls_name in (parent.__name__ for parent in inspect.getmro(cls)))
 
     def __getstate__(self):
         raise NotImplemented()
@@ -699,11 +715,12 @@ class BasicGame:
         This used to return a Dict[str, Action],
         but I think it's a hassle to upkeep the strings.
         """
-        from vgdl.core import Avatar
         try:
+            # My version of issubclass because it can't be trusted
             avatar_cls = next(cls for cls in self.sprite_registry.classes.values() \
-                              if issubclass(cls, Avatar))
+                              if self.is_avatar_cls(cls))
         except StopIteration:
+            print([parent.__name__ for parent in inspect.getmro(self.sprite_registry.classes['avatar'])])
             raise Exception('No avatar class registered')
 
         # Alternatively, use pygame names for keys instead of the key codes
@@ -712,7 +729,7 @@ class BasicGame:
         return { a.keys: a for a in action_dict.values() }
 
 
-    def tick(self, action: Union[Action, int], headless=True):
+    def tick(self, action: Union[Action, int]):
         """
         Actions are currently communicated to the rest of the program
         through game.keystate, which mimics pygame.key.get_pressed().
@@ -734,16 +751,6 @@ class BasicGame:
         if self.ended:
             # logging.warning('Action performed while game ended')
             return
-
-        # Flush events
-        # Getting events like this keeps things rolling, otherwise use pygame.event.pump
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.VIDEORESIZE:
-                # TODO renderer should handle resize events
-                pass
 
         # Update Keypresses
         # Agents are updated during the update routine in their ontology files,
@@ -914,7 +921,7 @@ class Avatar:
     shrinkfactor=0.15
 
     def __init__(self):
-        assert false
+        raise NotImplementedError('Abstract base class Avatar')
         self.actions = Avatar.declare_possible_actions()
 
 
