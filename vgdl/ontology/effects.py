@@ -208,7 +208,7 @@ def killIfAlive(sprite, partner, game):
 def collectResource(sprite, partner, game):
     """ Adds/increments the resource type of sprite in partner """
     assert isinstance(sprite, Resource)
-    r = sprite.resourceType
+    r = sprite.resource_type
     partner.resources[r] = max(0, min(partner.resources[r]+sprite.value, game.resources_limits[r]))
 
 def changeResource(sprite, partner, game, resource, value=1):
@@ -259,7 +259,7 @@ def pullWithIt(sprite, partner, game):
         return
     tmp = sprite.lastrect
     v = unitVector(partner.lastdirection)
-    sprite._updatePos(v, partner.speed * sprite.physics.gridsize[0])
+    sprite._update_position(v, partner.speed * sprite.physics.gridsize[0])
     if isinstance(sprite.physics, ContinuousPhysics):
         sprite.speed = partner.speed
         sprite.orientation = partner.lastdirection

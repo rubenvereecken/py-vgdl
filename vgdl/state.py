@@ -62,14 +62,14 @@ class AbsoluteObserver(StateObserver):
     def __init__(self, game: BasicGame) -> None:
         super().__init__(game)
 
-        avatars = game.getSprites('avatar')
+        avatars = game.get_sprites('avatar')
         assert len(avatars) == 1, 'Single avatar'
         avatar = avatars[0]
         assert issubclass(avatar.physicstype, GridPhysics)
 
 
     def get_observation(self) -> Observation:
-        avatars = self._game.getAvatars()
+        avatars = self._game.get_avatars()
         assert avatars
         observation = KeyValueObservation(x=avatars[0].rect.left, y=avatars[0].rect.top)
         return observation
@@ -83,14 +83,14 @@ class AbsoluteGridObserver(StateObserver):
     def __init__(self, game: BasicGame) -> None:
         super().__init__(game)
 
-        avatars = game.getSprites('avatar')
+        avatars = game.get_sprites('avatar')
         assert len(avatars) == 1, 'Single avatar'
         avatar = avatars[0]
         assert issubclass(avatar.physicstype, GridPhysics)
 
 
     def get_observation(self) -> Observation:
-        avatars = self._game.getAvatars()
+        avatars = self._game.get_avatars()
         assert avatars
         position = self._rect_to_pos(avatars[0].rect)
         observation = KeyValueObservation(x=position[0], y=position[1])

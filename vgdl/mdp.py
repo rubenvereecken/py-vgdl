@@ -64,9 +64,9 @@ class MDPConverter:
             action = self.env.action_set[action_i]
             # TODO will have to not include random state for stochastic
             # game_state = self.game.getGameState(include_random_state=True)
-            self.game.setGameState(state)
+            self.game.set_game_state(state)
             self.task.performAction(action)
-            next_state = self.game.getGameState()
+            next_state = self.game.get_game_state()
 
             if save_transitions:
                 # (s, a, s')
@@ -91,7 +91,7 @@ class MDPConverter:
         assert len(states) > 0, 'Must run a conversion method first, or pass in states'
 
         def _get_observation(state: GameState):
-            self.game.setGameState(state)
+            self.game.set_game_state(state)
             observation = self.task.getObservation()
             return observation
 

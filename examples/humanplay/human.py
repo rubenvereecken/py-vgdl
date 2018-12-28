@@ -80,7 +80,7 @@ class HumanController:
         observer = env.observer
         obs = env.observer.get_observation()
         sprites = game.sprite_registry
-        state = game.getGameState()
+        state = game.get_game_state()
         all = dict(
             env=env, game=game, observer=observer,
             obs=obs, sprites=sprites, state=state

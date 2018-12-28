@@ -217,7 +217,7 @@ class Chaser(RandomNPC):
     def _closestTargets(self, game):
         bestd = 1e100
         res = []
-        for target in game.getSprites(self.stype):
+        for target in game.get_sprites(self.stype):
             d = self.physics.distance(self.rect, target.rect)
             if d < bestd:
                 bestd = d

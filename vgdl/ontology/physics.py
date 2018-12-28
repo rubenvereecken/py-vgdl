@@ -29,7 +29,7 @@ class GridPhysics(Physics):
         else:
             speed = sprite.speed
         if speed != 0 and hasattr(sprite, 'orientation'):
-            sprite._updatePos(sprite.orientation, speed * self.gridsize[0])
+            sprite._update_position(sprite.orientation, speed * self.gridsize[0])
 
     def activeMovement(self, sprite, action, speed=None):
         if speed is None:
@@ -41,7 +41,7 @@ class GridPhysics(Physics):
             # TODO have all actions be Action
             if isinstance(action, Action):
                 action = action.as_vector()
-            sprite._updatePos(action, speed * self.gridsize[0])
+            sprite._update_position(action, speed * self.gridsize[0])
 
 
     def distance(self, r1, r2):

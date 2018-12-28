@@ -203,7 +203,7 @@ class SpriteRegistry:
         def _sprite_state(sprite):
             return dict(
                 id=sprite.id,
-                state=sprite.getGameState()
+                state=sprite.get_game_state()
             )
 
         sprite_states = {}
@@ -254,7 +254,7 @@ class SpriteRegistry:
                 if id in self._sprite_by_id:
                     sprite = self._sprite_by_id[id]
                     known_alive = sprite.alive
-                    sprite.setGameState(sprite_state['state'])
+                    sprite.set_game_state(sprite_state['state'])
                     if known_alive and not sprite.alive:
                         self.kill_sprite(sprite)
                     elif not known_alive and sprite.alive:
@@ -500,7 +500,7 @@ class BasicGame:
         return hash(self._identity())
 
 
-    def buildLevel(self, lstr):
+    def build_level(self, lstr):
         self.levelstring = lstr
         lines = [l for l in lstr.split("\n") if len(l)>0]
         lengths = list(map(len, lines))
@@ -547,7 +547,7 @@ class BasicGame:
             self.sprite_order.remove('avatar')
             self.sprite_order.append('avatar')
 
-        self.init_state = self.getGameState()
+        self.init_state = self.get_game_state()
 
     def reset(self):
         """
@@ -559,44 +559,14 @@ class BasicGame:
         self.ended = False
         self.kill_list.clear()
         if self.init_state:
-            self.setGameState(self.init_state)
+            self.set_game_state(self.init_state)
         self.last_state = None
         self.update_queue.clear()
         # TODO rng?
 
 
-    # Returns a list of empty grid cells
-    def emptyBlocks(self):
-        alls = [s for s in self]
-        res = []
-        for col in range(self.width):
-            for row in range(self.height):
-                r = pygame.Rect((col*self.block_size, row*self.block_size),
-                                (self.block_size, self.block_size))
-                free = True
-                for s in alls:
-                    if r.colliderect(s.rect):
-                        free = False
-                        break
-                if free:
-                    res.append((col*self.block_size, row*self.block_size))
-        return res
-
-
-    def randomizeAvatar(self):
-        assert False, "You sure you want this?"
-        if len(self.getAvatars()) == 0:
-            self.create_sprite('avatar', self.random_generator.choice(self.emptyBlocks()))
-
-
-    @property
-    def num_sprites(self):
-        # TODO make sure this doesn't run often, optimize
-        return len(list(self.sprite_registry.sprites()))
-
-
     def create_sprite(self, key, pos, id=None) -> Optional['VGDLSprite']:
-        assert self.num_sprites < self.MAX_SPRITES, 'Sprite limit reached'
+        # assert self.num_sprites < self.MAX_SPRITES, 'Sprite limit reached'
 
         sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
 
@@ -621,16 +591,16 @@ class BasicGame:
         self.kill_list.append(sprite)
         self.sprite_registry.destroy_sprite(sprite)
 
-    def numSprites(self, key):
+    def num_sprites(self, key):
         """ Abstract groups are computed on demand only """
         deleted = len([s for s in self.kill_list if key in s.stypes])
 
         return len(self.sprite_registry.with_stype(key)) - deleted
 
-    def getSprites(self, key):
+    def get_sprites(self, key):
         return self.sprite_registry.with_stype(key)
 
-    def getAvatars(self):
+    def get_avatars(self):
         """ The currently alive avatar(s) """
         res = []
 
@@ -650,7 +620,7 @@ class BasicGame:
         raise NotImplemented()
 
 
-    def getGameState(self, include_random_state=False) -> GameState:
+    def get_game_state(self, include_random_state=False) -> GameState:
         # Return cached state
         if self.last_state is not None:
             return self.last_state
@@ -669,7 +639,7 @@ class BasicGame:
         return state
 
 
-    def setGameState(self, state: GameState):
+    def set_game_state(self, state: GameState):
         """
         Rebuilds all sprites and resets game state
         TODO: Keep a sprite registry and even keep dead sprites around,
@@ -683,12 +653,7 @@ class BasicGame:
             if k in ['sprites']: continue
             setattr(self, k, v)
 
-    def _updateCollisionDict(self, changedsprite):
-        for key in changedsprite.stypes:
-            if key in self.lastcollisions:
-                del self.lastcollisions[key]
-
-    def _eventHandling(self):
+    def _event_handling(self):
         self.lastcollisions: Dict[str, Tuple['VGDLSprite',int]] = {}
         ss = self.lastcollisions
         for effect in self.collision_eff:
@@ -747,7 +712,7 @@ class BasicGame:
         self.last_reward = score
 
 
-    def getPossibleActions(self) -> Dict[Tuple[int], Action]:
+    def get_possible_actions(self) -> Dict[Tuple[int], Action]:
         """
         Assume actions don't change
 
@@ -779,8 +744,8 @@ class BasicGame:
         """
         if isinstance(action, int):
             action = Action(action)
-        assert action in self.getPossibleActions().values(), \
-          'Illegal action %s, expected one of %s' % (action, self.getPossibleActions())
+        assert action in self.get_possible_actions().values(), \
+          'Illegal action %s, expected one of %s' % (action, self.get_possible_actions())
         if isinstance(action, int):
             action = Action(action)
 
@@ -818,7 +783,7 @@ class BasicGame:
             s.update(self)
 
         # Handle Collision Effects
-        self._eventHandling()
+        self._event_handling()
 
         # Iterate Over Termination Criteria
         self._check_terminations()
@@ -828,7 +793,7 @@ class BasicGame:
 
     def _check_terminations(self):
         for t in self.terminations:
-            self.ended, win = t.isDone(self)
+            self.ended, win = t.is_done(self)
             if self.ended:
                 # Terminations are allowed to specify a score
                 self.add_score(t.score)
@@ -893,7 +858,7 @@ class VGDLSprite:
     def __getstate__(self):
         raise NotImplemented()
 
-    def getGameState(self) -> SpriteState:
+    def get_game_state(self) -> SpriteState:
         state = { attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
                  if hasattr(self, attr_name)}
         # The alternative is to have each class define _just_ its state attrs,
@@ -902,7 +867,7 @@ class VGDLSprite:
         state['_effect_data'] = copy.deepcopy(self._effect_data)
         return SpriteState(state)
 
-    def setGameState(self, state: SpriteState):
+    def set_game_state(self, state: SpriteState):
         # self._effect_data.clear()
         # self._effect_data.update(state.get('_effect_data'))
         self._effect_data = state['_effect_data'].copy()
@@ -923,7 +888,7 @@ class VGDLSprite:
         if not self.is_static and not self.only_active:
             self.physics.passiveMovement(self)
 
-    def _updatePos(self, orientation, speed=None):
+    def _update_position(self, orientation, speed=None):
         # TODO use self.speed etc
         if isinstance(orientation, Action):
             import ipdb; ipdb.set_trace()
@@ -982,7 +947,7 @@ class Resource(VGDLSprite):
     state_attributes = VGDLSprite.state_attributes + ['limit']
 
     @property
-    def resourceType(self):
+    def resource_type(self):
         if self.res_type is None:
             return self.key
         else:
@@ -996,13 +961,13 @@ class Immutable(VGDLSprite):
     """
     is_static = True
 
-    def getGameState(self):
+    def get_game_state(self):
         return SpriteState(dict(alive=self.alive))
 
-    def setGameState(self, state):
+    def set_game_state(self, state):
         self.alive = state['alive']
 
-    def _updatePos(self):
+    def _update_position(self):
         raise Exception('Tried to move Immutable')
 
     def update(self, game):
@@ -1015,7 +980,7 @@ class Termination:
         self.score = scoreChange
 
     """ Base class for all termination criteria. """
-    def isDone(self, game):
+    def is_done(self, game):
         """ returns whether the game is over, with a win/lose flag """
         from pygame.locals import K_ESCAPE, QUIT
         if K_ESCAPE in game.active_keys or pygame.event.peek(QUIT):

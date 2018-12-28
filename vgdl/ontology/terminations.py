@@ -21,7 +21,7 @@ class Timeout(Termination):
         self.limit = limit
         self.win = win
 
-    def isDone(self, game):
+    def is_done(self, game):
         if game.time >= self.limit:
             return True, self.win
         else:
@@ -37,8 +37,8 @@ class SpriteCounter(Termination):
     def __repr__(self):
         return 'SpriteCounter(stype={})'.format(self.stype)
 
-    def isDone(self, game):
-        if game.numSprites(self.stype) <= self.limit:
+    def is_done(self, game):
+        if game.num_sprites(self.stype) <= self.limit:
             return True, self.win
         else:
             return False, None
@@ -50,8 +50,8 @@ class MultiSpriteCounter(Termination):
         self.limit = limit
         self.stypes = kwargs.values()
 
-    def isDone(self, game):
-        if sum([game.numSprites(st) for st in self.stypes]) == self.limit:
+    def is_done(self, game):
+        if sum([game.num_sprites(st) for st in self.stypes]) == self.limit:
             return True, self.win
         else:
             return False, None
@@ -63,8 +63,8 @@ class ResourceCounter(Termination):
         self.stype = stype
         self.limit = limit
 
-    def isDone(self, game):
-        avatar = game.getAvatars()[0]
+    def is_done(self, game):
+        avatar = game.get_avatars()[0]
         satisfied = avatar.resources.get(self.stype, 0) >= self.limit
 
         return satisfied, self.win

@@ -46,7 +46,7 @@ class GapworldObserver(AbsoluteObserver):
     All we need is a 1d x variable to represent state uniquely
     """
     def get_observation(self):
-        avatar = self._game.getAvatars()[0]
+        avatar = self._game.get_avatars()[0]
         position = self._rect_to_pos(avatar.rect)
         obs = KeyValueObservation(x=position[0])
         return obs
@@ -58,7 +58,7 @@ def load_gapworld_game_and_level():
     with open(os.path.join(os.path.dirname(__file__), 'gapworld_lvl0.txt')) as f:
         levelfile = f.read()
     game = vgdl.VGDLParser().parseGame(gamefile)
-    game.buildLevel(levelfile)
+    game.build_level(levelfile)
     return game
 
 

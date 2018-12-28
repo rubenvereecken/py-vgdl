@@ -381,7 +381,7 @@ class MarioAvatar(OrientedAvatar):
         self.lastrect = self.rect
         self.lastmove += 1
 
-        self._updatePos(self.orientation, self.speed)
+        self._update_position(self.orientation, self.speed)
 
 
     @classmethod

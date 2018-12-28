@@ -46,12 +46,12 @@ class VGDLEnv(gym.Env):
 
         # Need to build a sample level to get the available actions and screensize....
         self.game = vgdl.VGDLParser().parseGame(self.game_desc, **self.game_args)
-        self.game.buildLevel(self.level_desc)
+        self.game.build_level(self.level_desc)
 
         self.score_last = self.game.score
 
         # Set action space and observation space
-        self._action_set = OrderedDict(self.game.getPossibleActions())
+        self._action_set = OrderedDict(self.game.get_possible_actions())
         self.action_space = spaces.Discrete(len(self._action_set))
 
         self.screen_width, self.screen_height = self.game.screensize
@@ -111,7 +111,7 @@ class VGDLEnv(gym.Env):
 
     def reset(self):
         self.game.reset()
-        self.game.buildLevel(self.level_desc)
+        self.game.build_level(self.level_desc)
         self.score_last = self.game.score
         state = self._get_obs()
         return state

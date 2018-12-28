@@ -16,9 +16,9 @@ class AStarWorld(object):
 		#ghost_sprites = game.getSprites('ghost')
 		#pacman_sprite = game.getSprites('pacman')[0]
 
-		self.food = game.getSprites('food')
-		self.nest = game.getSprites('nest')
-		self.moving = game.getSprites('moving')
+		self.food = game.get_sprites('food')
+		self.nest = game.get_sprites('nest')
+		self.moving = game.get_sprites('moving')
 		self.empty = [VGDLSprite(pos, (self.game.block_size, self.game.block_size)) for pos in self.game.emptyBlocks()]
 
 		##print "food=%s, nest=%s, moving=%s" %(len(food), len(nest), len(moving))
@@ -133,7 +133,7 @@ class AStarWorld(object):
 		index = self.get_index(tileX, tileY)
 		startNode = AStarNode(index, startSprite)
 
-		pacman = self.game.getSprites('pacman')[0]
+		pacman = self.game.get_sprites('pacman')[0]
 		goalX, goalY = self.get_sprite_tile_position(pacman)
 		goalIndex = self.get_index(goalX, goalY)
 		goalNode = AStarNode(goalIndex, pacman)
