@@ -1,9 +1,3 @@
-'''
-Video game description language -- parser, framework and core game classes.
-
-@author: Tom Schaul
-'''
-
 import pygame
 import pygame.key
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN

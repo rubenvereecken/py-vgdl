@@ -1,9 +1,3 @@
-'''
-Video game description language -- utility functions.
-
-@author: Tom Schaul
-'''
-
 from functools import *
 from collections import UserDict, defaultdict
 from math import sqrt
