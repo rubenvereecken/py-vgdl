@@ -11,7 +11,7 @@ from pygame.math import Vector2
 import random
 from .tools import Node, indentTreeParser, PrettyDict, freeze_dict
 from .tools import roundedPoints
-from collections import defaultdict, UserDict, deque
+from collections import defaultdict, UserDict, deque, OrderedDict
 import math
 import numpy as np
 import os
@@ -38,6 +38,9 @@ class SpriteRegistry:
         self.stypes: Dict[str, List] = {}
         self.sprite_keys: List[str] = []
 
+        # Populated by parser
+        self.singletons: List[str] = []
+
         # All sprite instances, each has a unique id
         self._sprite_by_id = {}
         # Sprites are grouped by their primary stype, but they can have more
@@ -49,6 +52,9 @@ class SpriteRegistry:
         self._live_sprites_by_key.clear()
         self._dead_sprites_by_key.clear()
         self._sprite_by_id.clear()
+
+    def register_singleton(self, key):
+        self.singletons.append(key)
 
     def register_sprite_class(self, key, cls, args, stypes):
         assert not key in self.sprite_keys, 'Sprite key already registered'
@@ -72,11 +78,22 @@ class SpriteRegistry:
         return count + 1
 
     def generate_id(self, key):
-        n = self.generate_id_number(key)
+        # Singletons always get the same id
+        if self.is_singleton(key):
+            n = 0
+        else:
+            n = self.generate_id_number(key)
         return '{}.{}'.format(key, n)
+
+    def is_singleton(self, key):
+        return key in self.singletons
 
     def create_sprite(self, key, id=None, **kwargs):
         # TODO fix rng
+
+        if self.is_singleton(key) and self._live_sprites_by_key[key]:
+            return None
+
         sclass, args, stypes = self.get_sprite_def(key)
         id = id or self.generate_id(key)
 
@@ -137,7 +154,9 @@ class SpriteRegistry:
 
     def sprites(self, include_dead=False):
         assert include_dead is False
-        for key, sprites in self._live_sprites_by_key.items():
+        # Order sprites by definition
+        for key in self.sprite_keys:
+            sprites = self._live_sprites_by_key[key]
             for sprite in sprites:
                 yield sprite
 
@@ -162,6 +181,16 @@ class SpriteRegistry:
         for _, ss in self.groups(include_dead=True):
             if ss and self.is_avatar(ss[0]):
                 return ss[0]
+
+    def defs_with_class(self, target):
+        defs = []
+        for stype, cls in self.classes.items():
+            if any(target.__name__ == cls_name for cls_name \
+                   in (parent.__name__ for parent in inspect.getmro(cls))):
+                # cls descends from target
+                defs.append((stype, cls, self.class_args[stype]))
+        return defs
+
 
     def is_avatar(self, sprite):
         return self.is_avatar_cls(sprite.__class__)
@@ -248,10 +277,11 @@ class SpriteState(PrettyDict, UserDict):
     # TODO be careful comparing SpriteStates, some attributes in _effect_data contain
     # timestamps that would cause equality to fail where we would want it to succeed
     # Either do not save in form of timestamp, or do time-sensitive equality check
-    def norm_time_hash(self, time):
+    def norm_time_hash(self, time, notable_resources):
         """
         This relies on the HEAVY assumption that timestamp keys start with  't_'
         """
+        overwrite = {}
         if '_effect_data' in self.data:
             effect_data = []
             # onceperstep events
@@ -267,15 +297,27 @@ class SpriteState(PrettyDict, UserDict):
                 # else:
                 #     effect_data.append((k, v))
             # This should overwrite the original, absolute _effect_data
-            return freeze_dict({**self.data, **dict(_effect_data=effect_data)})
-        return freeze_dict(self.data)
+            overwrite['_effect_data'] = effect_data
 
+        if 'resources' in self.data:
+            resources = { k: self.data['resources'].get(k, 0) for k in notable_resources}
+            overwrite['resources'] = resources
+
+        # TODO analyse unnecessary copy
+        return freeze_dict({**self.data, **overwrite})
 
 
 class GameState(UserDict):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, game, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.notable_resources = game.notable_resources
         self.frozen = None
+
+#     def __getstate__(self):
+#         return self.data
+
+#     def __setstate__(self, data):
+#         self.data = data
 
     @property
     def avatar_state(self):
@@ -292,11 +334,13 @@ class GameState(UserDict):
         # Take into account time, want to have time-insensitive equality
         time = self['time']
         self.frozen = freeze_dict(self.data['sprites'],
-                             { SpriteState: partial(SpriteState.norm_time_hash, time=time) })
+                             { SpriteState: partial(SpriteState.norm_time_hash,
+                                                    time=time, notable_resources=self.notable_resources) })
         return self.frozen
 
     def __eq__(self, other):
         """ Game state equality, should ignore time etc """
+        # TODO equality should probably not depend on accumulated score
         return self.freeze() == other.freeze()
 
     def __hash__(self):
@@ -310,7 +354,7 @@ class GameState(UserDict):
     def __repr__(self):
         """ Assume single-avatar """
         avatar_state = self.avatar_state['state']
-        return ('GameState(time={time}, score={score}, ended={ended}, '
+        return ('GameState(time={time}, score={score}, reward={last_reward}, ended={ended}, '
                'avatar=(pos={rect.topleft}, alive={alive}))').format(**self.data, **avatar_state)
 
 
@@ -405,8 +449,6 @@ class BasicGame:
 
         # z-level of sprite types (in case of overlap), populated by parser
         self.sprite_order = []
-        # which sprite types (abstract or not) are singletons? By parser
-        self.singletons = []
         # used for erasing dead sprites
         self.kill_list = []
         # collision effects (ordered by execution order)
@@ -477,6 +519,7 @@ class BasicGame:
         self.notable_resources = []
         for res_type, (sclass, args, _) in self.sprite_registry.get_sprite_defs():
             if issubclass(sclass, Resource):
+                # TODO use a more OO approach, alas need to instantiate Resource
                 if 'res_type' in args:
                     res_type = args['res_type']
                 if 'color' in args:
@@ -511,6 +554,7 @@ class BasicGame:
         Resets the environment. If a level is known, revert to its initial state.
         """
         self.score = 0
+        self.last_reward = 0
         self.time = 0
         self.ended = False
         self.kill_list.clear()
@@ -556,15 +600,11 @@ class BasicGame:
 
         sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
 
-        # TODO port this to registry
-        anyother = any(self.numSprites(pk) > 0 for pk in stypes[::-1] if pk in self.singletons)
-        if anyother:
-            return None
-
         sprite = self.sprite_registry.create_sprite(key, pos=pos, id=id,
                                            size=(self.block_size, self.block_size),
                                            rng=self.random_generator)
-        self.is_stochastic = self.is_stochastic or sprite.is_stochastic
+
+        self.is_stochastic = self.is_stochastic or sprite and sprite.is_stochastic
 
         return sprite
 
@@ -588,7 +628,6 @@ class BasicGame:
         return len(self.sprite_registry.with_stype(key)) - deleted
 
     def getSprites(self, key):
-        # assert len(self.kill_list) == 0, 'Deprecated behaviour'
         return self.sprite_registry.with_stype(key)
 
     def getAvatars(self):
@@ -612,20 +651,19 @@ class BasicGame:
 
 
     def getGameState(self, include_random_state=False) -> GameState:
-        assert len(self.kill_list) == 0, 'Kill list not empty'
-
         # Return cached state
         if self.last_state is not None:
             return self.last_state
 
         state_dict = {
             'score': self.score,
+            'last_reward': self.last_reward,
             'time': self.time,
             'ended': self.ended,
             'sprites': self.sprite_registry.get_state(),
         }
 
-        state = GameState(state_dict)
+        state = GameState(self, state_dict)
         self.last_state = state
 
         return state
@@ -706,6 +744,7 @@ class BasicGame:
 
     def add_score(self, score):
         self.score += score
+        self.last_reward = score
 
 
     def getPossibleActions(self) -> Dict[Tuple[int], Action]:
@@ -748,6 +787,9 @@ class BasicGame:
         # This is required for game-updates to work properly
         self.time += 1
 
+        # Careful, self.last_reward should not be used _during_ a `tick`
+        self.last_reward = 0
+
         if self.ended:
             # logging.warning('Action performed while game ended')
             return
@@ -779,14 +821,18 @@ class BasicGame:
         self._eventHandling()
 
         # Iterate Over Termination Criteria
+        self._check_terminations()
+
+        self.last_state = None
+
+
+    def _check_terminations(self):
         for t in self.terminations:
             self.ended, win = t.isDone(self)
             if self.ended:
                 # Terminations are allowed to specify a score
                 self.add_score(t.score)
                 break
-
-        self.last_state = None
 
 
 class VGDLSprite:
@@ -864,7 +910,8 @@ class VGDLSprite:
         for k, v in state.items():
             if k in ['_effect_data']: continue
             if hasattr(self, k):
-                setattr(self, k, v)
+                # Deep copy because v can definitely be altered (think resources)
+                setattr(self, k, copy.deepcopy(v))
             else:
                 logging.warning('Unknown sprite state attribute `%s`', k)
 
@@ -910,7 +957,7 @@ class VGDLSprite:
 
     @property
     def lastdirection(self):
-        return (self.rect[0]-self.lastrect[0], self.rect[1]-self.lastrect[1])
+        return Vector2(self.rect.topleft) - Vector2(self.lastrect.topleft)
 
     def __repr__(self):
         return "{} `{}` at ({}, {})".format(self.key, self.id, *self.rect.topleft)

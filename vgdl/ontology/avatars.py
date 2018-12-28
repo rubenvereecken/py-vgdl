@@ -154,20 +154,21 @@ class FlakAvatar(HorizontalAvatar, SpriteProducer):
 
 class OrientedAvatar(OrientedSprite, MovingAvatar):
     """ Avatar retains its orientation, but moves in cardinal directions. """
-    draw_arrow = True
     def update(self, game):
-        tmp = self.orientation
-        self.orientation = (0, 0)
+        last_orientation = self.orientation
+        self.orientation = Vector2(0, 0)
         VGDLSprite.update(self, game)
+
         action = self._readAction(game)
         if action:
             self.physics.activeMovement(self, action)
-        d = self.lastdirection
-        if sum(map(abs, d)) > 0:
-            # only update if the sprite moved.
-            self.orientation = d
+
+        if self.lastdirection.length() != 0:
+            # Face the direction you moved
+            self.orientation = self.lastdirection
         else:
-            self.orientation = tmp
+            # Make sure orientation is kept
+            self.orientation = last_orientation
 
 class RotatingAvatar(OrientedSprite, MovingAvatar):
     """ Avatar retains its orientation, and moves forward/backward or rotates

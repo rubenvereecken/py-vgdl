@@ -69,7 +69,8 @@ class Flicker(VGDLSprite):
 
         self._age += 1
         if self._age >= self.limit:
-            game.kill_sprite(self)
+            # game.kill_sprite(self)
+            game.destroy_sprite(self)
 
 class Spreader(Flicker):
     """ Spreads to its four canonical neighbor positions, and replicates itself there,

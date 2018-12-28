@@ -82,9 +82,10 @@ class VGDLParser:
             key, sdef = [x.strip() for x in sn.content.split(">")]
             sclass, args = self._parseArgs(sdef, parentclass, parentargs.copy())
             stypes = parenttypes+[key]
+
             if 'singleton' in args:
                 if args['singleton']==True:
-                    self.game.singletons.append(key)
+                    self.game.sprite_registry.register_singleton(key)
                 args = args.copy()
                 del args['singleton']
 
