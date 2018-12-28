@@ -74,7 +74,7 @@ class VGDLParser:
     def parse_game(self, tree, **kwargs):
         """ Accepts either a string, or a tree. """
         if not isinstance(tree, Node):
-            tree = indentTreeParser(tree).children[0]
+            tree = indent_tree_parser(tree).children[0]
         sclass, args = self._parse_args(tree.content)
         args.update(kwargs)
         # BasicGame construction

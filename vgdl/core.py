@@ -194,11 +194,15 @@ class SpriteRegistry:
             )
 
         sprite_states = {}
-        for sprite_type, sprites in self._live_sprites_by_key.items():
+        # for sprite_type, sprites in self._live_sprites_by_key.items():
+        for sprite_type in self.sprite_keys:
+            sprites = self._live_sprites_by_key[sprite_type]
             # Do not save Immutables. Immutables are always alive, etc.
             sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites \
                                           if not isinstance(sprite, Immutable)]
-        for sprite_type, sprites in self._dead_sprites_by_key.items():
+        # for sprite_type, sprites in self._dead_sprites_by_key.items():
+        for sprite_type in self.sprite_keys:
+            sprites = self._dead_sprites_by_key[sprite_type]
             sprite_states[sprite_type] += [_sprite_state(sprite) for sprite in sprites]
 
         return sprite_states
@@ -249,7 +253,7 @@ class SpriteRegistry:
                 else:
                     # Including pos here because I don't like allowing position-less sprites
                     sprite = self.create_sprite(key, id, pos=sprite_state['state']['rect'].topleft)
-                    sprite.setGameState(sprite_state['state'])
+                    sprite.set_game_state(sprite_state['state'])
 
     def assert_sanity(self):
         live = set(s.id for ss in self._live_sprites_by_key.values() for s in ss)

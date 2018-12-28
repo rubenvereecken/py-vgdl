@@ -8,7 +8,7 @@ from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Action, Resource, Immutable
 from vgdl.core import Color
-from vgdl.tools import triPoints, unit_vector
+from vgdl.tools import unit_vector
 from .constants import *
 from .physics import GridPhysics, ContinuousPhysics
 
