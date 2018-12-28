@@ -1,8 +1,7 @@
-from collections import UserDict, OrderedDict
-from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 
 from vgdl.core import BasicGame
-from vgdl.ontology import GridPhysics, Avatar
+from vgdl.ontology import GridPhysics
 from vgdl.tools import PrettyDict
 
 
@@ -17,6 +16,7 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
     received them. For that reason, it is crucial that values are always passed
     in in the same order, as there is currently no other way to enforce order.
     """
+
     def as_array(self):
         import numpy as np
         return np.hstack(list(self.values()))
@@ -31,6 +31,7 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
     def __hash__(self):
         return hash(tuple(self.items()))
 
+
 class StateObserver:
     def __init__(self, game: BasicGame) -> None:
         self._game = game
@@ -39,7 +40,7 @@ class StateObserver:
         raise NotImplemented()
 
     def _rect_to_pos(self, r):
-        return (r.left // self._game.block_size, r.top // self._game.block_size)
+        return r.left // self._game.block_size, r.top // self._game.block_size
 
     @property
     def observation_shape(self):
@@ -59,6 +60,7 @@ class AbsoluteObserver(StateObserver):
     - Assumes a single-avatar grid physics game
     - Observation is (x, y) of avatar's rectangle, in pixels
     """
+
     def __init__(self, game: BasicGame) -> None:
         super().__init__(game)
 
@@ -66,7 +68,6 @@ class AbsoluteObserver(StateObserver):
         assert len(avatars) == 1, 'Single avatar'
         avatar = avatars[0]
         assert issubclass(avatar.physicstype, GridPhysics)
-
 
     def get_observation(self) -> Observation:
         avatars = self._game.get_avatars()
@@ -80,6 +81,7 @@ class AbsoluteGridObserver(StateObserver):
     - Assumes a single-avatar grid physics game
     - Observation is (x, y) of avatar converted to grid (not raw pixels)
     """
+
     def __init__(self, game: BasicGame) -> None:
         super().__init__(game)
 
@@ -87,7 +89,6 @@ class AbsoluteGridObserver(StateObserver):
         assert len(avatars) == 1, 'Single avatar'
         avatar = avatars[0]
         assert issubclass(avatar.physicstype, GridPhysics)
-
 
     def get_observation(self) -> Observation:
         avatars = self._game.get_avatars()

@@ -3,10 +3,6 @@ from pybrain.utilities import flood
 
 from typing import Any, List, Optional, Tuple
 
-import vgdl
-import vgdl.interfaces
-from vgdl.interfaces.pybrain import VGDLPybrainEnvironment
-
 from vgdl.core import GameState
 from vgdl.state import Observation
 
@@ -15,6 +11,7 @@ class MDPConverter:
     """
     This class relies entirely on the Pybrain Environment interface
     """
+
     def __init__(self, task):
         self.task = task
         self.env = task.env
@@ -24,15 +21,14 @@ class MDPConverter:
         # [(s, a, s')]
         self.transitions: List[Tuple[GameState, int, GameState]] = []
         # S' -> R
-        self.rewards: Dict[GameState, int] = { self.env.init_game_state: 0 }
+        self.rewards: Dict[GameState, int] = {self.env.init_game_state: 0}
 
         assert not self.game.is_stochastic, 'TODO: stochastic env'
-
 
     def convert_task_to_mdp(self):
         # Finds all states, all the while logging transitions and rewards
         self.states = sorted(flood(self.get_neighbors, None, [self.env.init_game_state]))
-        state_dict = { state: state_i for state_i, state in enumerate(self.states) }
+        state_dict = {state: state_i for state_i, state in enumerate(self.states)}
 
         # Reward function R(s')
         R = np.fromiter((self.rewards[state] for state in self.states), dtype=np.double)
@@ -45,7 +41,6 @@ class MDPConverter:
             T[action_i, state_dict[state], state_dict[next_state]] = 1
 
         return T, R
-
 
     def get_neighbors(self, state: GameState, save_transitions=True) -> List[GameState]:
         """
@@ -80,8 +75,7 @@ class MDPConverter:
                        in enumerate(self.env.action_set)]
         return next_states
 
-
-    def get_observations(self, states: Optional[List[GameState]]=None) -> List[Observation]:
+    def get_observations(self, states: Optional[List[GameState]] = None) -> List[Observation]:
         """
         Get observations corresponding to states.
         Only works after the initial conversion where self.states is populated.
@@ -97,5 +91,3 @@ class MDPConverter:
 
         observations = [_get_observation(state) for state in states]
         return observations
-
-

@@ -18,6 +18,7 @@ import inspect
 
 Color = NewType('Color', Tuple[int, int, int])
 
+
 class SpriteRegistry:
     """
     A registry that knows of all types of sprites from a game description,
@@ -25,6 +26,7 @@ class SpriteRegistry:
 
     TODO: may need to split this into separate class and instance registries.
     """
+
     def __init__(self):
         # Sprite classes, a class is identified by its key
         self.classes: Dict[str, type] = {}
@@ -107,12 +109,10 @@ class SpriteRegistry:
         self._live_sprites_by_key[sprite.key].remove(sprite)
         self._dead_sprites_by_key[sprite.key].append(sprite)
 
-
     def revive_sprite(self, sprite):
         sprite.alive = True
         self._dead_sprites_by_key[sprite.key].remove(sprite)
         self._live_sprites_by_key[sprite.key].append(sprite)
-
 
     def destroy_sprite(self, sprite):
         """
@@ -121,8 +121,10 @@ class SpriteRegistry:
         """
         if sprite.id in self._sprite_by_id:
             del self._sprite_by_id[sprite.id]
-            self._live_sprites_by_key[sprite.key] = [s for s in self._live_sprites_by_key[sprite.key] if not s.id == sprite.id]
-            self._dead_sprites_by_key[sprite.key] = [s for s in self._dead_sprites_by_key[sprite.key] if not s.id == sprite.id]
+            self._live_sprites_by_key[sprite.key] = [s for s in self._live_sprites_by_key[sprite.key] if
+                                                     not s.id == sprite.id]
+            self._dead_sprites_by_key[sprite.key] = [s for s in self._dead_sprites_by_key[sprite.key] if
+                                                     not s.id == sprite.id]
             return True
         return False
 
@@ -138,13 +140,11 @@ class SpriteRegistry:
             for key in self._live_sprites_by_key.keys():
                 yield key, self._live_sprites_by_key[key] + self._dead_sprites_by_key[key]
 
-
     def group(self, key, include_dead=False) -> List['VGDLSprite']:
         if not include_dead:
             return self._live_sprites_by_key[key]
         else:
             return self._live_sprites_by_key[key] + self._dead_sprites_by_key[key]
-
 
     def sprites(self, include_dead=False):
         assert include_dead is False
@@ -153,7 +153,6 @@ class SpriteRegistry:
             sprites = self._live_sprites_by_key[key]
             for sprite in sprites:
                 yield sprite
-
 
     def with_stype(self, stype, include_dead=False):
         """
@@ -164,7 +163,6 @@ class SpriteRegistry:
             return self.group(stype, include_dead)
         else:
             return [s for _, sprites in self.groups(include_dead) for s in sprites if stype in s.stypes]
-
 
     def get_avatar(self):
         """
@@ -185,13 +183,11 @@ class SpriteRegistry:
                 defs.append((stype, cls, self.class_args[stype]))
         return defs
 
-
     def is_avatar(self, sprite):
         return self.is_avatar_cls(sprite.__class__)
 
     def is_avatar_cls(self, cls):
         return any('Avatar' in cls_name for cls_name in (parent.__name__ for parent in inspect.getmro(cls)))
-
 
     def get_state(self) -> dict:
         def _sprite_state(sprite):
@@ -258,13 +254,13 @@ class SpriteRegistry:
                     sprite = self.create_sprite(key, id, pos=sprite_state['state']['rect'].topleft)
                     sprite.setGameState(sprite_state['state'])
 
-
     def assert_sanity(self):
         live = set(s.id for ss in self._live_sprites_by_key.values() for s in ss)
         dead = set([s.id for ss in self._dead_sprites_by_key.values() for s in ss])
         if len(live.intersection(dead)) > 0:
             print('not sane')
-            import ipdb; ipdb.set_trace()
+            import ipdb;
+            ipdb.set_trace()
 
 
 class SpriteState(PrettyDict, UserDict):
@@ -281,7 +277,7 @@ class SpriteState(PrettyDict, UserDict):
             # onceperstep events
             for k, v in self.data['_effect_data'].items():
                 if k == 't_last_touched_ladder':
-                    effect_data.append((k, v >= time -1))
+                    effect_data.append((k, v >= time - 1))
                 elif k.startswith('t_'):
                     effect_data.append((k, v >= time))
                 else:
@@ -294,7 +290,7 @@ class SpriteState(PrettyDict, UserDict):
             overwrite['_effect_data'] = effect_data
 
         if 'resources' in self.data:
-            resources = { k: self.data['resources'].get(k, 0) for k in notable_resources}
+            resources = {k: self.data['resources'].get(k, 0) for k in notable_resources}
             overwrite['resources'] = resources
 
         # TODO analyse unnecessary copy
@@ -306,12 +302,6 @@ class GameState(UserDict):
         super().__init__(*args, **kwargs)
         self.notable_resources = game.notable_resources
         self.frozen = None
-
-#     def __getstate__(self):
-#         return self.data
-
-#     def __setstate__(self, data):
-#         self.data = data
 
     @property
     def avatar_state(self):
@@ -328,8 +318,8 @@ class GameState(UserDict):
         # Take into account time, want to have time-insensitive equality
         time = self['time']
         self.frozen = freeze_dict(self.data['sprites'],
-                             { SpriteState: partial(SpriteState.norm_time_hash,
-                                                    time=time, notable_resources=self.notable_resources) })
+                                  {SpriteState: partial(SpriteState.norm_time_hash,
+                                                        time=time, notable_resources=self.notable_resources)})
         return self.frozen
 
     def __eq__(self, other):
@@ -349,7 +339,7 @@ class GameState(UserDict):
         """ Assume single-avatar """
         avatar_state = self.avatar_state['state']
         return ('GameState(time={time}, score={score}, reward={last_reward}, ended={ended}, '
-               'avatar=(pos={rect.topleft}, alive={alive}))').format(**self.data, **avatar_state)
+                'avatar=(pos={rect.topleft}, alive={alive}))').format(**self.data, **avatar_state)
 
 
 class Action:
@@ -358,6 +348,7 @@ class Action:
     use those keys. They're a handy leftover to vectorise actions
     and make thinking with them and programming game dynamics easier.
     """
+
     def __init__(self, *args):
         self.keys = tuple(sorted(args))
 
@@ -366,8 +357,8 @@ class Action:
         Directional keys are used to encode directions.
         Opposite directions cancel eachother out.
         """
-        return Vector2( -1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
-                 -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys) )
+        return Vector2(-1 * (K_LEFT in self.keys) + 1 * (K_RIGHT in self.keys),
+                       -1 * (K_UP in self.keys) + 1 * (K_DOWN in self.keys))
 
     def __str__(self):
         _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else str(k)
@@ -376,7 +367,6 @@ class Action:
             return key_rep or 'noop'
         else:
             return '[{}]'.format(key_rep)
-
 
     def __repr__(self):
         _key_name = lambda k: pygame.key.name(k) if pygame.key.name(k) != 'unknown key' else str(k)
@@ -425,7 +415,7 @@ class BasicGame:
     block_size = 1
     render_sprites = True
 
-    default_mapping = { 'w': ['wall'], 'A': ['avatar'] }
+    default_mapping = {'w': ['wall'], 'A': ['avatar']}
 
     notable_resources: List[str] = []
 
@@ -437,7 +427,7 @@ class BasicGame:
             if hasattr(self, name):
                 self.__dict__[name] = value
             else:
-                print("WARNING: undefined parameter '%s' for game! "%(name))
+                print("WARNING: undefined parameter '%s' for game! " % (name))
 
         self.sprite_registry = sprite_registry
 
@@ -462,13 +452,11 @@ class BasicGame:
         self.update_queue = deque()
         self.reset()
 
-
     def __repr__(self):
         if not self.title is None:
             return '{} `{}`'.format(self.__class__.__name__, self.title)
         else:
             return '{}'.format(self.__class__.__name__)
-
 
     def _identity(self):
         """
@@ -486,24 +474,22 @@ class BasicGame:
             class_args=dill.dumps(self.sprite_registry.class_args)
         )
 
-
     def __hash__(self):
         """
         Domain- and level-sensitive hash. Ignores GameState.
         """
         return hash(self._identity())
 
-
     def build_level(self, lstr):
         self.levelstring = lstr
-        lines = [l for l in lstr.split("\n") if len(l)>0]
+        lines = [l for l in lstr.split("\n") if len(l) > 0]
         lengths = list(map(len, lines))
-        assert min(lengths)==max(lengths), "Inconsistent line lengths."
+        assert min(lengths) == max(lengths), "Inconsistent line lengths."
         self.width = lengths[0]
         self.height = len(lines)
         # assert self.width > 1 and self.height > 1, "Level too small."
 
-        self.screensize = (self.width*self.block_size, self.height*self.block_size)
+        self.screensize = (self.width * self.block_size, self.height * self.block_size)
 
         # Empty out all known sprites
         self.sprite_registry.reset()
@@ -527,7 +513,7 @@ class BasicGame:
             for col, c in enumerate(l):
                 key = self.char_mapping.get(c, None) or self.default_mapping.get(c, None)
                 if key is not None:
-                    pos = (col*self.block_size, row*self.block_size)
+                    pos = (col * self.block_size, row * self.block_size)
                     self.create_sprites(key, pos)
 
         self.is_stochastic = any(e.is_stochastic for e in self.collision_eff)
@@ -558,15 +544,14 @@ class BasicGame:
         self.update_queue.clear()
         # TODO rng?
 
-
     def create_sprite(self, key, pos, id=None) -> Optional['VGDLSprite']:
         # assert self.num_sprites < self.MAX_SPRITES, 'Sprite limit reached'
 
         sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
 
         sprite = self.sprite_registry.create_sprite(key, pos=pos, id=id,
-                                           size=(self.block_size, self.block_size),
-                                           rng=self.random_generator)
+                                                    size=(self.block_size, self.block_size),
+                                                    rng=self.random_generator)
 
         self.is_stochastic = self.is_stochastic or sprite and sprite.is_stochastic
 
@@ -613,7 +598,6 @@ class BasicGame:
     def __getstate__(self):
         raise NotImplemented()
 
-
     def get_game_state(self, include_random_state=False) -> GameState:
         # Return cached state
         if self.last_state is not None:
@@ -632,7 +616,6 @@ class BasicGame:
 
         return state
 
-
     def set_game_state(self, state: GameState):
         """
         Rebuilds all sprites and resets game state
@@ -648,7 +631,7 @@ class BasicGame:
             setattr(self, k, v)
 
     def _event_handling(self):
-        self.lastcollisions: Dict[str, Tuple['VGDLSprite',int]] = {}
+        self.lastcollisions: Dict[str, Tuple['VGDLSprite', int]] = {}
         ss = self.lastcollisions
         for effect in self.collision_eff:
             g1 = effect.actor_stype
@@ -664,14 +647,15 @@ class BasicGame:
             if g2 == "EOS":
                 ss1, l1 = ss[g1]
                 for s1 in ss1:
-                    game_rect = pygame.Rect((0,0), self.screensize)
+                    game_rect = pygame.Rect((0, 0), self.screensize)
                     if not game_rect.contains(s1.rect):
                         try:
                             self.add_score(effect.score)
                             effect(s1, None, self)
                         except Exception as e:
                             print(e)
-                            import ipdb; ipdb.set_trace()
+                            import ipdb;
+                            ipdb.set_trace()
                 continue
 
             # TODO care about efficiency again sometime, test short sprite list vs long
@@ -700,11 +684,9 @@ class BasicGame:
                     if sprite not in self.kill_list:
                         effect(sprite, other, self)
 
-
     def add_score(self, score):
         self.score += score
         self.last_reward = score
-
 
     def get_possible_actions(self) -> Dict[Tuple[int], Action]:
         """
@@ -722,10 +704,9 @@ class BasicGame:
             raise Exception('No avatar class registered')
 
         # Alternatively, use pygame names for keys instead of the key codes
-        pygame_keys = { k: v for k, v in vars(pygame).items() if k.startswith('K_') }
+        pygame_keys = {k: v for k, v in vars(pygame).items() if k.startswith('K_')}
         action_dict = avatar_cls.declare_possible_actions()
-        return { a.keys: a for a in action_dict.values() }
-
+        return {a.keys: a for a in action_dict.values()}
 
     def tick(self, action: Union[Action, int]):
         """
@@ -739,7 +720,7 @@ class BasicGame:
         if isinstance(action, int):
             action = Action(action)
         assert action in self.get_possible_actions().values(), \
-          'Illegal action %s, expected one of %s' % (action, self.get_possible_actions())
+            'Illegal action %s, expected one of %s' % (action, self.get_possible_actions())
         if isinstance(action, int):
             action = Action(action)
 
@@ -784,7 +765,6 @@ class BasicGame:
 
         self.last_state = None
 
-
     def _check_terminations(self):
         for t in self.terminations:
             self.ended, win = t.is_done(self)
@@ -796,52 +776,52 @@ class BasicGame:
 
 class VGDLSprite:
     """ Base class for all sprite types. """
-    COLOR_DISC    = [20,80,140,200]
+    COLOR_DISC = [20, 80, 140, 200]
 
-    is_static     = False
-    only_active   = False
-    is_avatar     = False
+    is_static = False
+    only_active = False
+    is_avatar = False
     is_stochastic = False
-    color         = None # type: Optional[Color]
-    cooldown      = 0 # pause ticks in-between two moves
-    speed         = None # type: Optional[int]
-    mass          = 1
-    physicstype   = None # type: type
-    shrinkfactor  = 0.
+    color = None  # type: Optional[Color]
+    cooldown = 0  # pause ticks in-between two moves
+    speed = None  # type: Optional[int]
+    mass = 1
+    physicstype = None  # type: type
+    shrinkfactor = 0.
 
     state_attributes = ['rect', 'alive', 'resources', 'speed']
 
-    def __init__(self, key, id, pos, size=(1,1), color=None, speed=None, cooldown=None, physicstype=None, random_generator=None, **kwargs):
+    def __init__(self, key, id, pos, size=(1, 1), color=None, speed=None, cooldown=None, physicstype=None,
+                 random_generator=None, **kwargs):
         if not isinstance(size, tuple):
             size = (size, size)
 
         # Every sprite must have a key, an id, and a position
         self.key: str = key
-        self.id: str  = id
-        self.rect     = pygame.Rect(pos, size)
+        self.id: str = id
+        self.rect = pygame.Rect(pos, size)
         self.lastrect = self.rect
-        self.alive    = True
+        self.alive = True
 
         from .ontology import GridPhysics
-        self.physicstype      = physicstype or self.physicstype or GridPhysics
-        self.physics          = self.physicstype(size)
-        self.speed            = speed or self.speed
-        self.cooldown         = cooldown or self.cooldown
-        self.img              = None
-        self.img_orient       = None
+        self.physicstype = physicstype or self.physicstype or GridPhysics
+        self.physics = self.physicstype(size)
+        self.speed = speed or self.speed
+        self.cooldown = cooldown or self.cooldown
+        self.img = None
+        self.img_orient = None
         # TODO rng
         self.color = color or self.color
-        # self.color            = color or self.color or (random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC), random_generator.choice(self.COLOR_DISC))
 
         # TODO re-evaluate whether this is useful
         # To be populated by events, should be cleared on reset
-        self._effect_data     = {}
+        self._effect_data = {}
 
         for name, value in kwargs.items():
             try:
                 self.__dict__[name] = value
             except:
-                print("WARNING: undefined parameter '%s' for sprite '%s'! "%(name, self.__class__.__name__))
+                print("WARNING: undefined parameter '%s' for sprite '%s'! " % (name, self.__class__.__name__))
 
         # how many timesteps ago was the last move?
         self.lastmove = 0
@@ -853,7 +833,7 @@ class VGDLSprite:
         raise NotImplemented()
 
     def get_game_state(self) -> SpriteState:
-        state = { attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
+        state = {attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
                  if hasattr(self, attr_name)}
         # The alternative is to have each class define _just_ its state attrs,
         # flatten(c.state_attributes for c in inspect.getmro(self.__class__) \
@@ -885,13 +865,14 @@ class VGDLSprite:
     def _update_position(self, orientation, speed=None):
         # TODO use self.speed etc
         if isinstance(orientation, Action):
-            import ipdb; ipdb.set_trace()
+            import ipdb;
+            ipdb.set_trace()
         if speed is None:
             velocity = Vector2(orientation) * self.speed
         else:
             velocity = Vector2(orientation) * speed
         # if not(self.cooldown > self.lastmove or abs(orientation[0])+abs(orientation[1])==0):
-        if not(self.cooldown > self.lastmove):
+        if not (self.cooldown > self.lastmove):
             # TODO use self.velocity
             self.rect = self.rect.move(velocity)
             self.lastmove = 0
@@ -899,8 +880,8 @@ class VGDLSprite:
     @property
     def velocity(self) -> Vector2:
         """ The velocity property is made up of the orientation and speed attributes """
-        if self.speed is None or self.speed==0 or not hasattr(self, 'orientation'):
-            return Vector2(0,0)
+        if self.speed is None or self.speed == 0 or not hasattr(self, 'orientation'):
+            return Vector2(0, 0)
         else:
             return Vector2(self.orientation) * self.speed
 
@@ -910,7 +891,7 @@ class VGDLSprite:
         self.speed = v.length()
         # Orientation is of unit length except when it isn't
         if self.speed == 0:
-            self.orientation = Vector2(0,0)
+            self.orientation = Vector2(0, 0)
         else:
             self.orientation = v.normalize()
 
@@ -924,7 +905,7 @@ class VGDLSprite:
 
 class Avatar:
     """ Abstract superclass of all avatars. """
-    shrinkfactor=0.15
+    shrinkfactor = 0.15
 
     def __init__(self):
         raise NotImplementedError('Abstract base class Avatar')
@@ -934,8 +915,8 @@ class Avatar:
 class Resource(VGDLSprite):
     """ A special type of object that can be present in the game in two forms, either
     physically sitting around, or in the form of a counter inside another sprite. """
-    value=1
-    limit=2
+    value = 1
+    limit = 2
     res_type = None
 
     state_attributes = VGDLSprite.state_attributes + ['limit']
@@ -974,6 +955,7 @@ class Termination:
         self.score = scoreChange
 
     """ Base class for all termination criteria. """
+
     def is_done(self, game):
         """ returns whether the game is over, with a win/lose flag """
         from pygame.locals import K_ESCAPE, QUIT
@@ -981,6 +963,7 @@ class Termination:
             return True, False
         else:
             return False, None
+
 
 class Effect:
     """
@@ -998,6 +981,7 @@ class Effect:
     def __call__(self, sprite, partner, game):
         raise NotImplementedError
 
+
 class FunctionalEffect(Effect):
     """
     DEPRECATED.
@@ -1005,6 +989,7 @@ class FunctionalEffect(Effect):
     Old-style effect, implemented with a function.
     The parser will use this when it finds effects that are functions.
     """
+
     def __init__(self, fn, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.call_fn = fn
@@ -1027,12 +1012,19 @@ class Physics:
 # TODO move this somewhere pretty
 # This allows both copy and pickle to work with pygame stuff
 import copyreg
+
+
 def _pickle_vector(v):
     return Vector2, (v.x, v.y)
+
+
 def _pickle_rect(r):
     return pygame.Rect, (*r.topleft, r.width, r.height)
+
+
 copyreg.pickle(Vector2, _pickle_vector)
 copyreg.pickle(pygame.Rect, _pickle_rect)
 
 from vgdl.registration import registry
+
 registry.register_class(Immutable)

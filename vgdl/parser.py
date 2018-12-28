@@ -13,11 +13,11 @@ class VGDLParser:
     """ Parses a string into a Game object. """
     verbose = False
 
-    def parseGame(self, tree, **kwargs):
+    def parse_game(self, tree, **kwargs):
         """ Accepts either a string, or a tree. """
         if not isinstance(tree, Node):
             tree = indentTreeParser(tree).children[0]
-        sclass, args = self._parseArgs(tree.content)
+        sclass, args = self._parse_args(tree.content)
         args.update(kwargs)
         # BasicGame construction
         self.sprite_registry = SpriteRegistry()
@@ -25,13 +25,13 @@ class VGDLParser:
         for c in tree.children:
             # _, args = self._parseArgs(' '.join(c.content.split(' ')[1:]))
             if c.content.startswith("SpriteSet"):
-                self.parseSprites(c.children)
+                self.parse_sprites(c.children)
             if c.content == "InteractionSet":
-                self.parseInteractions(c.children)
+                self.parse_interactions(c.children)
             if c.content == "LevelMapping":
-                self.parseMappings(c.children)
+                self.parse_mappings(c.children)
             if c.content == "TerminationSet":
-                self.parseTerminations(c.children)
+                self.parse_terminations(c.children)
 
         return self.game
 
@@ -47,12 +47,12 @@ class VGDLParser:
             # Strings and numbers should just be interpreted
             return eval(estr)
 
-    def parseInteractions(self, inodes):
+    def parse_interactions(self, inodes):
         for inode in inodes:
             if ">" in inode.content:
                 pair, edef = [x.strip() for x in inode.content.split(">")]
-                eclass, kwargs = self._parseArgs(edef)
-                objs = [x.strip() for x in pair.split(" ") if len(x)>0]
+                eclass, kwargs = self._parse_args(edef)
+                objs = [x.strip() for x in pair.split(" ") if len(x) > 0]
 
                 # Create an effect for each actee
                 for obj in objs[1:]:
@@ -69,22 +69,22 @@ class VGDLParser:
                 if self.verbose:
                     print("Collision", pair, "has effect:", effect)
 
-    def parseTerminations(self, tnodes):
+    def parse_terminations(self, tnodes):
         for tn in tnodes:
-            sclass, args = self._parseArgs(tn.content)
+            sclass, args = self._parse_args(tn.content)
             if self.verbose:
                 print("Adding:", sclass, args)
             self.game.terminations.append(sclass(**args))
 
-    def parseSprites(self, snodes, parentclass=None, parentargs={}, parenttypes=[]):
+    def parse_sprites(self, snodes, parentclass=None, parentargs={}, parenttypes=[]):
         for sn in snodes:
             assert ">" in sn.content
             key, sdef = [x.strip() for x in sn.content.split(">")]
-            sclass, args = self._parseArgs(sdef, parentclass, parentargs.copy())
-            stypes = parenttypes+[key]
+            sclass, args = self._parse_args(sdef, parentclass, parentargs.copy())
+            stypes = parenttypes + [key]
 
             if 'singleton' in args:
-                if args['singleton']==True:
+                if args['singleton'] == True:
                     self.game.sprite_registry.register_singleton(key)
                 args = args.copy()
                 del args['singleton']
@@ -98,19 +98,19 @@ class VGDLParser:
                     self.game.sprite_order.remove(key)
                 self.game.sprite_order.append(key)
             else:
-                self.parseSprites(sn.children, sclass, args, stypes)
+                self.parse_sprites(sn.children, sclass, args, stypes)
 
-    def parseMappings(self, mnodes):
+    def parse_mappings(self, mnodes):
         for mn in mnodes:
             c, val = [x.strip() for x in mn.content.split(">")]
             assert len(c) == 1, "Only single character mappings allowed."
             # a char can map to multiple sprites
-            keys = [x.strip() for x in val.split(" ") if len(x)>0]
+            keys = [x.strip() for x in val.split(" ") if len(x) > 0]
             if self.verbose:
                 print("Mapping", c, keys)
             self.game.char_mapping[c] = keys
 
-    def _parseArgs(self, s,  sclass=None, args=None):
+    def _parse_args(self, s, sclass=None, args=None):
         if not args:
             args = {}
         sparts = [x.strip() for x in s.split(" ") if len(x) > 0]

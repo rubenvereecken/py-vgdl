@@ -57,7 +57,7 @@ def load_gapworld_game_and_level():
         gamefile = f.read()
     with open(os.path.join(os.path.dirname(__file__), 'gapworld_lvl0.txt')) as f:
         levelfile = f.read()
-    game = vgdl.VGDLParser().parseGame(gamefile)
+    game = vgdl.VGDLParser().parse_game(gamefile)
     game.build_level(levelfile)
     return game
 

@@ -45,7 +45,7 @@ class VGDLEnv(gym.Env):
         self.game_args.update(kwargs)
 
         # Need to build a sample level to get the available actions and screensize....
-        self.game = vgdl.VGDLParser().parseGame(self.game_desc, **self.game_args)
+        self.game = vgdl.VGDLParser().parse_game(self.game_desc, **self.game_args)
         self.game.build_level(self.level_desc)
 
         self.score_last = self.game.score

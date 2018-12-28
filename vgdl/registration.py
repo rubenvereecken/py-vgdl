@@ -6,13 +6,12 @@ class OntologyRegistry:
     """
     Contains all classes usable for constructing games
     """
+
     def __init__(self):
         self._register = {}
 
-
     def __contains__(self, key):
         return key in self._register
-
 
     def register(self, key, cls):
         if key in self._register:
@@ -21,14 +20,11 @@ class OntologyRegistry:
             pass
         self._register[key] = cls
 
-
     def register_class(self, cls):
         return self.register(cls.__name__, cls)
 
-
     def request(self, key):
         return self._register[key]
-
 
     def register_all(self, module: ModuleType):
         # Had an issue with re-registering classes that were imported in module
@@ -48,13 +44,11 @@ class OntologyRegistry:
         else:
             raise TypeError('Not sure how to register %s of type %s' % (module, type(module)))
 
-
     def register_from_string(self, module: str):
         """ module is expected to be a dot-separated Python module spec """
         import importlib
         module = importlib.import_module(module)
         self.register_all(module)
-
 
 
 registry = OntologyRegistry()
