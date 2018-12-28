@@ -8,7 +8,7 @@ from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Action, Resource, Immutable
 from vgdl.core import Color
-from vgdl.tools import triPoints, unitVector
+from vgdl.tools import triPoints, unit_vector
 from .constants import *
 from .physics import GridPhysics, ContinuousPhysics
 
@@ -137,7 +137,7 @@ class OrientedSprite(VGDLSprite):
         VGDLSprite._draw(self, game)
         if self.draw_arrow:
             col = (self.color[0], 255 - self.color[1], self.color[2])
-            pygame.draw.polygon(game.screen, col, triPoints(self.rect, unitVector(self.orientation)))
+            pygame.draw.polygon(game.screen, col, triPoints(self.rect, unit_vector(self.orientation)))
 
 class Conveyor(OrientedSprite):
     """ A static object that used jointly with the 'conveySprite' interaction to move

@@ -8,7 +8,7 @@ import pygame
 from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Avatar, Action, Resource
-from vgdl.tools import unitVector
+from vgdl.tools import unit_vector
 from .constants import *
 from .sprites import SpriteProducer, OrientedSprite
 from .physics import GridPhysics, ContinuousPhysics, GravityPhysics
@@ -258,12 +258,12 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
     def _shoot(self, game):
         from pygame.locals import K_SPACE
         if self.stype and K_SPACE in game.active_keys:
-            u = unitVector(self.orientation)
+            u = unit_vector(self.orientation)
 
             sprite = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
                                                        self.lastrect.top + u[1] * self.lastrect.size[1]))
             if sprite and isinstance(sprite, OrientedSprite):
-                sprite.orientation = unitVector(self.orientation)
+                sprite.orientation = unit_vector(self.orientation)
 
             self._spend_ammo()
 
@@ -285,8 +285,8 @@ class AimedAvatar(ShootAvatar):
             else:
                 angle = -self.angle_diff
             from math import cos, sin
-            self.orientation = unitVector((self.orientation[0]*cos(angle)-self.orientation[1]*sin(angle),
-                                           self.orientation[0]*sin(angle)+self.orientation[1]*cos(angle)))
+            self.orientation = unit_vector((self.orientation[0] * cos(angle) - self.orientation[1] * sin(angle),
+                                            self.orientation[0] * sin(angle) + self.orientation[1] * cos(angle)))
 
 class AimedFlakAvatar(AimedAvatar):
     """ Can move left and right """

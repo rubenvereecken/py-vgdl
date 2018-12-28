@@ -1,20 +1,17 @@
+import copy
+import inspect
+import logging
+import random
+from collections import defaultdict, UserDict, deque
+from functools import partial
+from typing import NewType, Optional, Union, Dict, List, Tuple
+
 import pygame
 import pygame.key
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
 from pygame.math import Vector2
-import random
-from .tools import Node, indentTreeParser, PrettyDict, freeze_dict
-from .tools import roundedPoints
-from collections import defaultdict, UserDict, deque, OrderedDict
-import math
-import numpy as np
-import os
-import sys
-import copy
-import logging
-from functools import partial
-from typing import NewType, Optional, Union, Dict, List, Tuple
-import inspect
+
+from .tools import PrettyDict, freeze_dict
 
 Color = NewType('Color', Tuple[int, int, int])
 
@@ -259,7 +256,7 @@ class SpriteRegistry:
         dead = set([s.id for ss in self._dead_sprites_by_key.values() for s in ss])
         if len(live.intersection(dead)) > 0:
             print('not sane')
-            import ipdb;
+            import ipdb
             ipdb.set_trace()
 
 
