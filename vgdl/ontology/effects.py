@@ -46,7 +46,7 @@ def undoAll(sprite, partner, game):
 def bounceForward(sprite, partner, game):
     """ The partner sprite pushed, so if possible move in the opposite direction. """
     assert False, 'TODO'
-    sprite.physics.activeMovement(sprite, unitVector(partner.lastdirection))
+    sprite.physics.active_movement(sprite, unitVector(partner.lastdirection))
     game._updateCollisionDict(sprite)
 
 def conveySprite(sprite, partner, game):
@@ -54,7 +54,7 @@ def conveySprite(sprite, partner, game):
     tmp = sprite.lastrect
     assert False, 'TODO'
     v = unitVector(partner.orientation)
-    sprite.physics.activeMovement(sprite, v, speed=partner.strength)
+    sprite.physics.active_movement(sprite, v, speed=partner.strength)
     sprite.lastrect = tmp
     game._updateCollisionDict(sprite)
 
@@ -65,7 +65,7 @@ def windGust(sprite, partner, game):
     if s != 0:
         tmp = sprite.lastrect.copy()
         v = unitVector(partner.orientation)
-        sprite.physics.activeMovement(sprite, v, speed=s)
+        sprite.physics.active_movement(sprite, v, speed=s)
         sprite.lastrect = tmp
         game._updateCollisionDict(sprite)
 
@@ -74,7 +74,7 @@ def slipForward(sprite, partner, game, prob=0.5):
     if prob > game.random_generator.random():
         tmp = sprite.lastrect
         v = unitVector(sprite.orientation)
-        sprite.physics.activeMovement(sprite, v, speed=1)
+        sprite.physics.active_movement(sprite, v, speed=1)
         sprite.lastrect = tmp
         game._updateCollisionDict(sprite)
 
@@ -86,9 +86,9 @@ def attractGaze(sprite, partner, game, prob=0.5):
 def turnAround(sprite, partner, game):
     sprite.rect = sprite.lastrect
     sprite.lastmove = sprite.cooldown
-    sprite.physics.activeMovement(sprite, DOWN)
+    sprite.physics.active_movement(sprite, DOWN)
     sprite.lastmove = sprite.cooldown
-    sprite.physics.activeMovement(sprite, DOWN)
+    sprite.physics.active_movement(sprite, DOWN)
     reverseDirection(sprite, partner, game)
     game._updateCollisionDict(sprite)
 

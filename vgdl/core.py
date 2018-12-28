@@ -886,7 +886,7 @@ class VGDLSprite:
         # no need to redraw if nothing was updated
         self.lastmove += 1
         if not self.is_static and not self.only_active:
-            self.physics.passiveMovement(self)
+            self.physics.passive_movement(self)
 
     def _update_position(self, orientation, speed=None):
         # TODO use self.speed etc

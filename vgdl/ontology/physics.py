@@ -18,7 +18,7 @@ __all__ = [
 class GridPhysics(Physics):
     """ Define actions and key-mappings for grid-world dynamics. """
 
-    def passiveMovement(self, sprite):
+    def passive_movement(self, sprite):
         """
         TODO This can be slightly dangerous and should probably be refactored.
         All sprites with an orientation and speed and GridPhysics will automatically
@@ -31,7 +31,7 @@ class GridPhysics(Physics):
         if speed != 0 and hasattr(sprite, 'orientation'):
             sprite._update_position(sprite.orientation, speed * self.gridsize[0])
 
-    def activeMovement(self, sprite, action, speed=None):
+    def active_movement(self, sprite, action, speed=None):
         if speed is None:
             if sprite.speed is None:
                 speed = 1
@@ -51,7 +51,7 @@ class GridPhysics(Physics):
 
 
 class ContinuousPhysics(GridPhysics):
-    def passiveMovement(self, sprite):
+    def passive_movement(self, sprite):
         if not hasattr(sprite, 'orientation'):
             return
         # sprite._updatePos(sprite.orientation, sprite.speed)
@@ -61,10 +61,10 @@ class ContinuousPhysics(GridPhysics):
 
         if self.gravity > 0 and sprite.mass > 0:
             sprite.passive_force = Vector2(0, self.gravity * sprite.mass)
-            self.activeMovement(sprite, sprite.passive_force)
+            self.active_movement(sprite, sprite.passive_force)
 
 
-    def activeMovement(self, sprite, force, speed=None):
+    def active_movement(self, sprite, force, speed=None):
         """
         Updates sprite.orientation and sprite.speed, which together make up
         the sprite's velocity.

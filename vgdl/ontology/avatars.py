@@ -70,7 +70,7 @@ class MovingAvatar(VGDLSprite, Avatar):
         actions["NO_OP"] = Action()
         return actions
 
-    def _readAction(self, game) -> Action:
+    def _read_action(self, game) -> Action:
         """
         An action can consist of multiple key presses. The action corresponding
         to the most key presses will be returned. Ties are broken arbitrarily.
@@ -90,9 +90,9 @@ class MovingAvatar(VGDLSprite, Avatar):
 
     def update(self, game):
         VGDLSprite.update(self, game)
-        action = self._readAction(game)
+        action = self._read_action(game)
         if not action == NOOP:
-            self.physics.activeMovement(self, action)
+            self.physics.active_movement(self, action)
 
 class HorizontalAvatar(MovingAvatar):
     """ Only horizontal moves.  """
@@ -109,9 +109,9 @@ class HorizontalAvatar(MovingAvatar):
 
     def update(self, game):
         VGDLSprite.update(self, game)
-        action = self._readAction(game)
+        action = self._read_action(game)
         if action.as_vector() in [RIGHT, LEFT]:
-            self.physics.activeMovement(self, action)
+            self.physics.active_movement(self, action)
 
 class VerticalAvatar(MovingAvatar):
     """ Only vertical moves.  """
@@ -127,9 +127,9 @@ class VerticalAvatar(MovingAvatar):
 
     def update(self, game):
         VGDLSprite.update(self, game)
-        action = self._readAction(game)
+        action = self._read_action(game)
         if action.as_vector() in [UP, DOWN]:
-            self.physics.activeMovement(self, action)
+            self.physics.active_movement(self, action)
 
 class FlakAvatar(HorizontalAvatar, SpriteProducer):
     """ Hitting the space button creates a sprite of the
@@ -159,9 +159,9 @@ class OrientedAvatar(OrientedSprite, MovingAvatar):
         self.orientation = Vector2(0, 0)
         VGDLSprite.update(self, game)
 
-        action = self._readAction(game)
+        action = self._read_action(game)
         if action:
-            self.physics.activeMovement(self, action)
+            self.physics.active_movement(self, action)
 
         if self.lastdirection.length() != 0:
             # Face the direction you moved
@@ -278,7 +278,7 @@ class AimedAvatar(ShootAvatar):
         self._shoot(game)
 
     def _aim(self, game):
-        action = self._readAction(game)
+        action = self._read_action(game)
         if action in [UP, DOWN]:
             if action == DOWN:
                 angle = self.angle_diff
@@ -295,9 +295,9 @@ class AimedFlakAvatar(AimedAvatar):
 
     def update(self, game):
         AimedAvatar.update(self, game)
-        action = self._readAction(game)
+        action = self._read_action(game)
         if action in [RIGHT, LEFT]:
-            self.physics.activeMovement(self, action)
+            self.physics.active_movement(self, action)
 
 class InertialAvatar(OrientedAvatar):
     speed = 1
@@ -366,16 +366,16 @@ class MarioAvatar(OrientedAvatar):
 
 
     def update(self, game):
-        action = self._readAction(game)
+        action = self._read_action(game)
         active_force = self.resolve_active_force(action, game)
         passive_force = self.resolve_passive_force(action, game)
         self.active_force = Vector2(active_force)
 
-        self.physics.activeMovement(self, Vector2(active_force) + passive_force)
+        self.physics.active_movement(self, Vector2(active_force) + passive_force)
 
         if not self.is_static and not self.only_active:
             # Resolve gravity, also sticky floors
-            self.physics.passiveMovement(self)
+            self.physics.passive_movement(self)
 
         # Body of VGDLSprite.update
         self.lastrect = self.rect

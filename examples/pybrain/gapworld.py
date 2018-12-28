@@ -35,10 +35,10 @@ class RightMovingJumpingAvatar(MovingAvatar):
             x = self.rect.x / game.block_size
             # Jump up to 2 far, but may be less if near end of corridor
             jump_size = min(2, game.width - x - 1)
-            self.physics.activeMovement(self, RIGHT, jump_size)
+            self.physics.active_movement(self, RIGHT, jump_size)
         else:
-            action = self._readAction(game)
-            self.physics.activeMovement(self, action)
+            action = self._read_action(game)
+            self.physics.active_movement(self, action)
 
 
 class GapworldObserver(AbsoluteObserver):

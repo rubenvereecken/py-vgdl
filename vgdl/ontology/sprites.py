@@ -123,7 +123,7 @@ class RandomNPC(VGDLSprite):
 
     def update(self, game):
         VGDLSprite.update(self, game)
-        self.physics.activeMovement(self, game.random_generator.choice(BASEDIRS))
+        self.physics.active_movement(self, game.random_generator.choice(BASEDIRS))
 
 class OrientedSprite(VGDLSprite):
     """ A sprite that maintains the current orientation. """
@@ -168,7 +168,7 @@ class Walker(Missile):
                 d = -1
             else:
                 d = game.random_generator.choice([-1, 1])
-            self.physics.activeMovement(self, (d, 0))
+            self.physics.active_movement(self, (d, 0))
         Missile.update(self, game)
 
 class WalkJumper(Walker):
@@ -177,7 +177,7 @@ class WalkJumper(Walker):
     def update(self, game):
         if self.lastdirection[0] == 0:
             if self.prob < game.random_generator.random():
-                self.physics.activeMovement(self, (0, -self.strength))
+                self.physics.active_movement(self, (0, -self.strength))
         Walker.update(self, game)
 
 
@@ -248,7 +248,7 @@ class Chaser(RandomNPC):
             options.extend(self._movesToward(game, target))
         if len(options) == 0:
             options = BASEDIRS
-        self.physics.activeMovement(self, game.random_generator.choice(options))
+        self.physics.active_movement(self, game.random_generator.choice(options))
 
 class Fleeing(Chaser):
     """ Just reversing directions"""
@@ -337,5 +337,5 @@ class AStarChaser(RandomNPC):
                 else:
                     movement = LEFT
 
-        self.physics.activeMovement(self, movement)
+        self.physics.active_movement(self, movement)
 
