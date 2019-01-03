@@ -91,6 +91,8 @@ class VGDLParser:
             if c.content == "TerminationSet":
                 self.parse_terminations(c.children)
 
+        self.game.finish_setup()
+
         return self.game
 
     def _eval(self, estr):

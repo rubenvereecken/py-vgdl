@@ -122,9 +122,9 @@ class StateActionGraph:
 
     def observations(self, observer_cls: type):
         observer = observer_cls(self.game)
+        initial_state = game.
 
-
-
+        for state in self.states():
 
 
     @classmethod

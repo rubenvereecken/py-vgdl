@@ -312,7 +312,7 @@ class SpriteState(PrettyDict, UserDict):
 class GameState(UserDict):
     def __init__(self, game, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.notable_resources = game.notable_resources
+        self.notable_resources = game.domain.notable_resources
         self.frozen = None
         self.hashed = None
 
@@ -434,104 +434,56 @@ class ACTION:
 
 class BasicGame:
     """
-    Minor reliance on pygame for collision detection,
-    hence we use pygame's integer rectangles.
-    Beware, only integer-sized and positioned rectangles possible.
-
-    This regroups all the components of a game's dynamics, after parsing.
+    Represents a game domain, with sprite types, transition dynamics (effects),
+    and reward/termination conditions.
     """
     MAX_SPRITES = 10000
 
-    title = None
-    # TODO
-    seed = 123
-    # Completely 2D worlds really just need a block size of 1
-    block_size = 1
-    render_sprites = True
+    def __init__(self, sprite_registry, title=None, block_size=1, **kwargs):
+        # TODO split the registries perhaps in domain/task?
+        # For now, just keep an unused copy for the domain
+        self.domain_registry = sprite_registry
+        self.title = title
+        # Completely 2D worlds really just need a block size of 1
+        self.block_size = block_size
 
-    default_mapping = {'w': ['wall'], 'A': ['avatar']}
-
-    notable_resources: List[str] = []
-
-    def __init__(self, sprite_registry, **kwargs):
-        from .ontology import GOLD
         for name, value in kwargs.items():
-            if name in ['notable_resources', 'notable_sprites']:
-                logging.warning('DEPRECATED BasicGame arg will be ignored: %s=%s', name, value)
-            if hasattr(self, name):
-                self.__dict__[name] = value
-            else:
-                print("WARNING: undefined parameter '%s' for game! " % (name))
+            print("WARNING: undefined parameter '%s' for game! " % (name))
 
-        self.sprite_registry = sprite_registry
+        self.notable_resources: List[str] = []
 
         # z-level of sprite types (in case of overlap), populated by parser
         self.sprite_order = []
-        # used for erasing dead sprites
-        self.kill_list = []
         # collision effects (ordered by execution order)
         self.collision_eff = []
         # for reading levels
-        self.char_mapping = {}
+        # TODO DEPRECATED defaults, backwards compatibility
+        self.char_mapping = {'w': ['wall'], 'A': ['avatar']}
         # termination criteria
         self.terminations = []
         # resource properties, used to draw resource bar on the avatar sprite
         self.resources_limits = defaultdict(lambda: 1)
+
+        from .ontology import GOLD
         self.resources_colors = defaultdict(lambda: GOLD)
 
-        self.random_generator = random.Random(self.seed)
-        self.is_stochastic = False
-        self.init_state = None
-        # Can add sprites to this queue to update during this tick
-        self.update_queue = deque()
-        self.reset()
-
-    def __repr__(self):
-        if not self.title is None:
-            return '{} `{}`'.format(self.__class__.__name__, self.title)
-        else:
-            return '{}'.format(self.__class__.__name__)
-
-    def _identity(self):
+    def finish_setup(self):
         """
-        Meant for __eq__ and __hash__, returns attributes that identify a
-        BasicGame with a level completely
+        Called when the parser is done populating the game
         """
-        import dill
-        return dict(
-            block_size=self.block_size,
-            levelstring=self.levelstring,
-            effects=[dill.dumps(effect) for effect in self.collision_eff],
-            # This summarises the domain. Careful, dill doesn't serialise class
-            # definitions, so code changes won't be reflected.
-            classes=dill.dumps(self.sprite_registry.classes),
-            class_args=dill.dumps(self.sprite_registry.class_args)
-        )
+        self.is_stochastic = any(e.is_stochastic for e in self.collision_eff)
 
-    def __hash__(self):
-        """
-        Domain- and level-sensitive hash. Ignores GameState.
-        """
-        return hash(self._identity())
+        self.setup_resources()
 
-    def build_level(self, lstr):
-        self.levelstring = lstr
-        lines = [l for l in lstr.split("\n") if len(l) > 0]
-        lengths = list(map(len, lines))
-        assert min(lengths) == max(lengths), "Inconsistent line lengths."
-        self.width = lengths[0]
-        self.height = len(lines)
-        # assert self.width > 1 and self.height > 1, "Level too small."
+        # Sprites with stype 'avatar' but not as main key won't work here
+        if 'avatar' in self.sprite_order:
+            self.sprite_order.remove('avatar')
+            self.sprite_order.append('avatar')
 
-        self.screensize = (self.width * self.block_size, self.height * self.block_size)
+    def setup_resources(self):
+        self.notable_resources.clear()
 
-        # Empty out all known sprites
-        self.sprite_registry.reset()
-        self.last_state = None
-
-        # set up resources
-        self.notable_resources = []
-        for res_type, (sclass, args, _) in self.sprite_registry.get_sprite_defs():
+        for res_type, (sclass, args, _) in self.domain_registry.get_sprite_defs():
             if issubclass(sclass, Resource):
                 # TODO use a more OO approach, alas need to instantiate Resource
                 if 'res_type' in args:
@@ -542,26 +494,109 @@ class BasicGame:
                     self.resources_limits[res_type] = args['limit']
                 self.notable_resources.append(res_type)
 
+    def build_level(self, lstr):
+        # TODO delegate this to a level parser
+        lines = [l for l in lstr.split("\n") if len(l) > 0]
+        lengths = [len(l) for l in lines]
+        assert min(lengths) == max(lengths), "Inconsistent line lengths."
+
+        level = BasicGameLevel(self, copy.deepcopy(self.domain_registry),
+                               lstr, width=lengths[0], height=len(lines))
+
         # create sprites
         for row, l in enumerate(lines):
             for col, c in enumerate(l):
-                key = self.char_mapping.get(c, None) or self.default_mapping.get(c, None)
+                key = self.char_mapping.get(c, None)
                 if key is not None:
                     pos = (col * self.block_size, row * self.block_size)
-                    self.create_sprites(key, pos)
+                    level.create_sprites(key, pos)
 
-        self.is_stochastic = any(e.is_stochastic for e in self.collision_eff)
+        # TODO find a prettier way to drop this, should be after creating
+        # sprites though
+        level.init_state = level.get_game_state()
 
-        # Used only for determining whether sprites should be erased
-        self.kill_list.clear()
+        return level
 
-        # guarantee that avatar is always visible
-        # Sprites with stype 'avatar' but not as main key won't work here
-        if 'avatar' in self.sprite_order:
-            self.sprite_order.remove('avatar')
-            self.sprite_order.append('avatar')
+    def identity(self):
+        """
+        Meant for __eq__ and __hash__, returns attributes that identify a
+        BasicGame domain without level
+        """
+        import dill
+        return dict(
+            block_size=self.block_size,
+            effects=[dill.dumps(effect) for effect in self.collision_eff],
+            # This summarises the domain. Careful, dill doesn't serialise class
+            # definitions, so code changes won't be reflected.
+            classes=dill.dumps(self.domain_registry.classes),
+            class_args=dill.dumps(self.domain_registry.class_args)
+        )
 
-        self.init_state = self.get_game_state()
+
+class BasicGameLevel:
+    """
+    Represents a game task and a game domain.
+
+    Minor reliance on pygame for collision detection,
+    hence we use pygame's integer rectangles.
+    Beware, only integer-sized and positioned rectangles possible.
+
+    This regroups all the components of a game's dynamics, after parsing.
+    """
+
+    def __init__(self, domain: BasicGame, sprite_registry, levelstring, width, height, seed=0):
+        self.domain = domain
+        self.sprite_registry = sprite_registry
+        self.levelstring = levelstring
+        self.width = width
+        self.height = height
+        self.block_size = domain.block_size
+        self.screensize = (self.width * self.block_size, self.height * self.block_size)
+
+        # Random state
+        self.seed = seed
+        self.random_generator = random.Random(self.seed)
+
+        # Can add sprites to this queue to update during this tick
+        self.update_queue = deque()
+
+        ### Below this is state keeping
+        # used for erasing dead sprites
+        self.kill_list = []
+        # Accumulated reward
+        self.score = 0
+        self.last_reward = 0
+        self.time = 0
+        self.ended = False
+
+        self.last_state = None
+
+    def set_seed(self, seed):
+        self.seed = seed
+        self.random_generator.seed(self.seed)
+
+    def __repr__(self):
+        if not self.title is None:
+            return pre + '{} `{}`'.format(self.__class__.__name__, self.title)
+        else:
+            return pre + '{}'.format(self.__class__.__name__)
+
+    def identity(self):
+        """
+        Meant for __eq__ and __hash__, returns attributes that identify a
+        BasicGame with a level completely
+        """
+        import dill
+        return dict(
+            domain=self.domain.identity(),
+            levelstring=self.levelstring,
+        )
+
+    def __hash__(self):
+        """
+        Domain- and level-sensitive hash. Ignores GameState.
+        """
+        return hash(self.identity())
 
     def reset(self):
         """
@@ -576,10 +611,10 @@ class BasicGame:
             self.set_game_state(self.init_state)
         self.last_state = None
         self.update_queue.clear()
-        # TODO rng?
+        self.random_generator.seed(self.seed)
 
     def create_sprite(self, key, pos, id=None) -> Optional['VGDLSprite']:
-        # assert self.num_sprites < self.MAX_SPRITES, 'Sprite limit reached'
+        # assert self.num_sprites < self.domain.MAX_SPRITES, 'Sprite limit reached'
 
         sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
 
@@ -587,7 +622,7 @@ class BasicGame:
                                                     size=(self.block_size, self.block_size),
                                                     rng=self.random_generator)
 
-        self.is_stochastic = self.is_stochastic or sprite and sprite.is_stochastic
+        self.is_stochastic = self.domain.is_stochastic or sprite and sprite.is_stochastic
 
         return sprite
 
@@ -667,7 +702,7 @@ class BasicGame:
     def _event_handling(self):
         self.lastcollisions: Dict[str, Tuple['VGDLSprite', int]] = {}
         ss = self.lastcollisions
-        for effect in self.collision_eff:
+        for effect in self.domain.collision_eff:
             g1 = effect.actor_stype
             g2 = effect.actee_stype
 
@@ -800,7 +835,7 @@ class BasicGame:
         self.last_state = None
 
     def _check_terminations(self):
-        for t in self.terminations:
+        for t in self.domain.terminations:
             self.ended, win = t.is_done(self)
             if self.ended:
                 # Terminations are allowed to specify a score
