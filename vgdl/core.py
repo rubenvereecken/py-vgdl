@@ -180,11 +180,22 @@ class SpriteRegistry:
                 defs.append((stype, cls, self.class_args[stype]))
         return defs
 
+    def issubclass(self, target, cls):
+        return any(cls.__name__ == cls_name for cls_name \
+                in (parent.__name__ for parent in inspect.getmro(target)))
+
     def is_avatar(self, sprite):
         return self.is_avatar_cls(sprite.__class__)
 
     def is_avatar_cls(self, cls):
         return any('Avatar' in cls_name for cls_name in (parent.__name__ for parent in inspect.getmro(cls)))
+
+    def should_save(self, key):
+        is_immutable = self.issubclass(self.classes[key], Immutable)
+        return not is_immutable
+
+    def saveable_keys(self):
+        return [key for key in self.sprite_keys if self.should_save(key)]
 
     def get_state(self) -> dict:
         def _sprite_state(sprite):
@@ -195,13 +206,13 @@ class SpriteRegistry:
 
         sprite_states = {}
         # for sprite_type, sprites in self._live_sprites_by_key.items():
-        for sprite_type in self.sprite_keys:
+        for sprite_type in self.saveable_keys():
             sprites = self._live_sprites_by_key[sprite_type]
             # Do not save Immutables. Immutables are always alive, etc.
             sprite_states[sprite_type] = [_sprite_state(sprite) for sprite in sprites \
                                           if not isinstance(sprite, Immutable)]
         # for sprite_type, sprites in self._dead_sprites_by_key.items():
-        for sprite_type in self.sprite_keys:
+        for sprite_type in self.saveable_keys():
             sprites = self._dead_sprites_by_key[sprite_type]
             sprite_states[sprite_type] += [_sprite_state(sprite) for sprite in sprites]
 
@@ -303,6 +314,19 @@ class GameState(UserDict):
         super().__init__(*args, **kwargs)
         self.notable_resources = game.notable_resources
         self.frozen = None
+        self.hashed = None
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['frozen']
+        del state['hashed']
+        return state
+
+    def __setstate__(self, state):
+        self.data = state['data']
+        self.notable_resources = state.get('notable_resources', [])
+        self.frozen = None
+        self.hashed = None
 
     @property
     def avatar_state(self):
@@ -323,14 +347,23 @@ class GameState(UserDict):
                                                         time=time, notable_resources=self.notable_resources)})
         return self.frozen
 
+
+    def hash(self):
+        if self.hashed is None:
+            self.hashed = hash(self.freeze())
+
+        return self.hashed
+
+
     def __eq__(self, other):
         """ Game state equality, should ignore time etc """
-        # TODO equality should probably not depend on accumulated score
-        return self.freeze() == other.freeze()
+        # return self.freeze() == other.freeze()
+        return self.hash() == other.hash()
 
     def __hash__(self):
         """ Game state equality is based on sprite state """
-        return hash(self.freeze())
+        return self.hash()
+
 
     def __lt__(self, other):
         # return self.data['time'] < other.data['time']
@@ -375,12 +408,12 @@ class Action:
         return 'Action({})'.format(key_rep or 'noop')
 
     def __eq__(self, other):
-        if not hasattr(other, 'keys'):
-            return False
-        return frozenset(self.keys) == frozenset(other.keys)
+        # if not hasattr(other, 'keys'):
+        #     return False
+        return self.keys == other.keys
 
     def __hash__(self):
-        return hash(frozenset(self.keys))
+        return hash(self.keys)
 
     @classmethod
     def from_vectors(*v):
