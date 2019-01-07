@@ -145,7 +145,7 @@ class VGDLParser:
 
             if 'singleton' in args:
                 if args['singleton'] == True:
-                    self.game.sprite_registry.register_singleton(key)
+                    self.sprite_registry.register_singleton(key)
                 args = args.copy()
                 del args['singleton']
 

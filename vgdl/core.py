@@ -11,7 +11,7 @@ import pygame.key
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
 from pygame.math import Vector2
 
-from .tools import PrettyDict, freeze_dict
+from .tools import PrettyDict, PrettyClass, freeze_dict
 
 Color = NewType('Color', Tuple[int, int, int])
 
@@ -462,10 +462,13 @@ class BasicGame:
         # termination criteria
         self.terminations = []
         # resource properties, used to draw resource bar on the avatar sprite
-        self.resources_limits = defaultdict(lambda: 1)
+        # TODO get rid of defaults
+        # self.resources_limits = defaultdict(lambda: 1)
+        self.resources_limits = {}
 
         from .ontology import GOLD
-        self.resources_colors = defaultdict(lambda: GOLD)
+        # self.resources_colors = defaultdict(lambda: GOLD)
+        self.resources_colors = {}
 
     def finish_setup(self):
         """
@@ -544,7 +547,7 @@ class BasicGameLevel:
     This regroups all the components of a game's dynamics, after parsing.
     """
 
-    def __init__(self, domain: BasicGame, sprite_registry, levelstring, width, height, seed=0):
+    def __init__(self, domain: BasicGame, sprite_registry, levelstring, width, height, seed=0, title=None):
         self.domain = domain
         self.sprite_registry = sprite_registry
         self.levelstring = levelstring
@@ -552,6 +555,7 @@ class BasicGameLevel:
         self.height = height
         self.block_size = domain.block_size
         self.screensize = (self.width * self.block_size, self.height * self.block_size)
+        self.title = title
 
         # Random state
         self.seed = seed
@@ -577,19 +581,20 @@ class BasicGameLevel:
 
     def __repr__(self):
         if not self.title is None:
-            return pre + '{} `{}`'.format(self.__class__.__name__, self.title)
+            return '{} `{}`'.format(self.__class__.__name__, self.title)
         else:
-            return pre + '{}'.format(self.__class__.__name__)
+            return '{}'.format(self.__class__.__name__)
 
     def identity(self):
         """
         Meant for __eq__ and __hash__, returns attributes that identify a
-        BasicGame with a level completely
+        a level completely
         """
         import dill
         return dict(
             domain=self.domain.identity(),
             levelstring=self.levelstring,
+            seed=self.seed,
         )
 
     def __hash__(self):
@@ -612,6 +617,19 @@ class BasicGameLevel:
         self.last_state = None
         self.update_queue.clear()
         self.random_generator.seed(self.seed)
+
+    def __getstate__(self):
+        """
+        It is recommended to save a level and a game state separately.
+        """
+        d = self.__dict__.copy()
+        d['gamestate'] = self.get_game_state()
+        return d
+
+    def __setstate__(self, state):
+        gamestate = state.pop('gamestate')
+        self.__dict__.update(state)
+        self.set_game_state(gamestate)
 
     def create_sprite(self, key, pos, id=None) -> Optional['VGDLSprite']:
         # assert self.num_sprites < self.domain.MAX_SPRITES, 'Sprite limit reached'
@@ -663,9 +681,6 @@ class BasicGameLevel:
 
     def is_avatar_cls(self, cls):
         return any('Avatar' in cls_name for cls_name in (parent.__name__ for parent in inspect.getmro(cls)))
-
-    def __getstate__(self):
-        raise NotImplemented()
 
     def get_game_state(self, include_random_state=False) -> GameState:
         # Return cached state
@@ -898,9 +913,6 @@ class VGDLSprite:
         # management of resources contained in the sprite
         self.resources = defaultdict(int)
 
-    def __getstate__(self):
-        raise NotImplemented()
-
     def get_game_state(self) -> SpriteState:
         state = {attr_name: copy.deepcopy(getattr(self, attr_name)) for attr_name in self.state_attributes \
                  if hasattr(self, attr_name)}
@@ -1018,7 +1030,7 @@ class Immutable(VGDLSprite):
         return
 
 
-class Termination:
+class Termination(PrettyClass):
     def __init__(self, win, scoreChange=0):
         self.win = win
         self.score = scoreChange

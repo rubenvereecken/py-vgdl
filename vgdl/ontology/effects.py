@@ -209,11 +209,11 @@ def collectResource(sprite, partner, game):
     """ Adds/increments the resource type of sprite in partner """
     assert isinstance(sprite, Resource)
     r = sprite.resource_type
-    partner.resources[r] = max(0, min(partner.resources[r]+sprite.value, game.resources_limits[r]))
+    partner.resources[r] = max(0, min(partner.resources[r]+sprite.value, game.domain.resources_limits[r]))
 
 def changeResource(sprite, partner, game, resource, value=1):
     """ Increments a specific resource type in sprite """
-    sprite.resources[resource] = max(0, min(sprite.resources[resource]+value, game.resources_limits[resource]))
+    sprite.resources[resource] = max(0, min(sprite.resources[resource]+value, game.domain.resources_limits[resource]))
 
 def spawnIfHasMore(sprite, partner, game, resource, stype, limit=1):
     """ If 'sprite' has more than a limit of the resource type given, it spawns a sprite of 'stype'. """

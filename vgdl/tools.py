@@ -24,6 +24,13 @@ class PrettyDict:
         return '{}({})'.format(self.pretty_name or self.__class__.__name__, attributes)
 
 
+class PrettyClass:
+    def __repr__(self):
+        attributes = ','.join('{}={!r}'.format(k, v) for k, v in vars(self).items())
+        return '{}({})'.format(self.__class__.__name__, attributes)
+
+
+
 _is_dict = lambda d: isinstance(d, dict) or isinstance(d, UserDict)
 
 
