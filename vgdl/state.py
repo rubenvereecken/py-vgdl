@@ -1,8 +1,10 @@
 from collections import OrderedDict
 
-from vgdl.core import BasicGame
+from vgdl.core import BasicGame, BasicGameLevel
 from vgdl.ontology import GridPhysics
 from vgdl.tools import PrettyDict
+
+import copy
 
 
 class Observation:
@@ -31,16 +33,21 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
     def __hash__(self):
         return hash(tuple(self.items()))
 
+    def merge(self, other):
+        out = copy.deepcopy(self)
+        out.update(other)
+        return out
+
 
 class StateObserver:
     def __init__(self, game: BasicGame) -> None:
-        self._game = game
+        self.game = game
 
     def get_observation(self) -> Observation:
-        raise NotImplemented()
+        return KeyValueObservation()
 
     def _rect_to_pos(self, r):
-        return r.left // self._game.block_size, r.top // self._game.block_size
+        return r.left // self.game.block_size, r.top // self.game.block_size
 
     @property
     def observation_shape(self):
@@ -64,16 +71,14 @@ class AbsoluteObserver(StateObserver):
     def __init__(self, game: BasicGame) -> None:
         super().__init__(game)
 
-        avatars = game.get_sprites('avatar')
-        assert len(avatars) == 1, 'Single avatar'
-        avatar = avatars[0]
+        avatar = game.sprite_registry.get_avatar()
         assert issubclass(avatar.physicstype, GridPhysics)
 
     def get_observation(self) -> Observation:
-        avatars = self._game.get_avatars()
-        assert avatars
-        observation = KeyValueObservation(x=avatars[0].rect.left, y=avatars[0].rect.top)
-        return observation
+        obs = super().get_observation()
+        avatar = self.game.sprite_registry.get_avatar()
+        obs = obs.merge(KeyValueObservation(x=avatar.rect.left, y=avatar.rect.top))
+        return obs
 
 
 class AbsoluteGridObserver(StateObserver):
@@ -91,8 +96,38 @@ class AbsoluteGridObserver(StateObserver):
         assert issubclass(avatar.physicstype, GridPhysics)
 
     def get_observation(self) -> Observation:
-        avatars = self._game.get_avatars()
+        avatars = self.game.get_avatars()
         assert avatars
         position = self._rect_to_pos(avatars[0].rect)
         observation = KeyValueObservation(x=position[0], y=position[1])
         return observation
+
+
+class OrientationObserver(StateObserver):
+    def __init__(self, game: BasicGame) -> None:
+        super().__init__(game)
+        from vgdl.ontology import OrientedAvatar
+        avatar = game.sprite_registry.get_avatar()
+        assert isinstance(avatar, OrientedAvatar)
+
+    def get_observation(self):
+        obs = super().get_observation()
+        avatar = self.game.sprite_registry.get_avatar()
+        obs = obs.merge(KeyValueObservation({
+            'orientation.x': avatar.orientation[0],
+            'orientation.y': avatar.orientation[1],
+        }))
+        return obs
+
+
+class ResourcesObserver(StateObserver):
+    def __init__(self, game: BasicGameLevel) -> None:
+        super().__init__(game)
+        # TODO verify it's a resource avatar
+
+    def get_observation(self):
+        obs = super().get_observation()
+        avatar = self.game.sprite_registry.get_avatar()
+        resources = { key: avatar.resources.get(key, 0) for key in self.game.domain.notable_resources }
+        obs = obs.merge(KeyValueObservation(resources))
+        return obs
