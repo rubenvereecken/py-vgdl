@@ -20,8 +20,8 @@ class StateActionGraph:
         # Assumes a single starting state
         self.init_state = self.game.init_state
 
-    def __getstate__(self):
-        return { k: v for k, v in self.__dict__.items() if k != 'game' }
+#     def __getstate__(self):
+#         return { k: v for k, v in self.__dict__.items() if k != 'game' }
 
     def grow_graph_bfs(self):
         assert not self.game.is_stochastic, 'Deterministic only'
@@ -85,6 +85,15 @@ class StateActionGraph:
                               for a, v in edges.items()))
         return graph
 
+    def as_indexed_networkx_graph(self):
+        import networkx as nx
+        graph = nx.MultiDiGraph()
+        graph.add_nodes_from(range(self.num_states))
+        graph.add_edges_from(((u, self.transitions[u, a], { 'action': a }) \
+                              for u, a in product(range(self.num_states), range(self.num_actions))))
+        return graph
+
+
     def states(self):
         for state in self.graph.keys():
             yield state
@@ -122,14 +131,18 @@ class StateActionGraph:
 
     def observations(self, observer_cls: type):
         observer = observer_cls(self.game)
-        initial_state = game.
 
         for state in self.states():
+            self.game.set_game_state(state)
+            observation = observer.get_observation()
+            yield observation
 
 
     @classmethod
-    def construct(cls, game: BasicGame):
+    def construct(cls, game: BasicGame, actions=None):
         graph = StateActionGraph(game)
+        if actions is not None:
+            graph.actions = actions
         graph.grow_graph_bfs()
         return graph
 
