@@ -91,7 +91,7 @@ to demonstrate the engine through human game play.
 Give it a go:
 ```bash
 # Any of the games in vgdl/games will work
-python -m examples.humanplay.play_vgdl vgdl/games/aliens_lvl0.txt
+python -m vgdl.util.humanplay.play_vgdl vgdl/games/aliens_lvl0.txt
 ```
 Definitely check out
 [all the other examples](examples/README.md)

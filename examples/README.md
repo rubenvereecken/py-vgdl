@@ -1,11 +1,11 @@
 # Examples
 ## Human Play
 A human controller is implemented
-in the [`examples.humanplay`](humanplay) package
+in the [`vgdl.util.humanplay`](humanplay) package
 that makes use of the Gym interface.
 Give it a quick spin using
 ```bash
-python -m examples.humanplay.play_vgdl vgdl/games/aliens_lvl0.txt
+python -m vgdl.util.humanplay.play_vgdl vgdl/games/aliens_lvl0.txt
 ```
 It creates a runnable game,
 registers a new gym environment derived from it on the fly,
@@ -47,13 +47,13 @@ the small Gap World game included in
 is not included by default,
 but can be run using
 ```bash
-python -m examples.humanplay.play_vgdl examples/pybrain/gapworld_lvl0.txt \
+python -m vgdl.util.humanplay.play_vgdl examples/pybrain/gapworld_lvl0.txt \
   -d examples/pybrain/gapworld.txt -m examples.pybrain.gapworld
 ```
 
 Be sure to try
 ```bash
-python -m examples.humanplay.play_vgdl --help
+python -m vgdl.util.humanplay.play_vgdl --help
 ```
 to figure out what those command-line parameters do.
 
