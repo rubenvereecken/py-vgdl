@@ -463,8 +463,8 @@ class BasicGame:
         self.terminations = []
         # resource properties, used to draw resource bar on the avatar sprite
         # TODO get rid of defaults
-        # self.resources_limits = defaultdict(lambda: 1)
-        self.resources_limits = {}
+        self.resources_limits = defaultdict(lambda: 1)
+        # self.resources_limits = {}
 
         from .ontology import GOLD
         # self.resources_colors = defaultdict(lambda: GOLD)

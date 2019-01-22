@@ -111,14 +111,15 @@ class VGDLEnv(gym.Env):
 
     def reset(self):
         # TODO improve the reset with the new domain split
-        # self.game.reset()
-        self.game = self.game.domain.build_level(self.level_desc)
+        self.game.reset()
+        # self.game = self.game.domain.build_level(self.level_desc)
         self.score_last = self.game.score
         state = self._get_obs()
         return state
 
     def render(self, mode='human', close=False):
         headless = mode != 'human'
+
         if self.renderer is None:
             from vgdl.render import PygameRenderer
             self.renderer = PygameRenderer(self.game, self.render_block_size)

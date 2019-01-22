@@ -113,7 +113,7 @@ class PygameRenderer:
             if prop != 0:
                 filled = pygame.Rect(rect.left+wiggle/2, offset, prop*(rect.width-wiggle), barheight)
                 rest   = pygame.Rect(rect.left+wiggle/2+prop*(rect.width-wiggle), offset, (1-prop)*(rect.width-wiggle), barheight)
-                self.screen.fill(self.game.resources_colors[r], filled)
+                self.screen.fill(self.game.domain.resources_colors[r], filled)
                 self.screen.fill(BLACK, rest)
                 offset += barheight
 
