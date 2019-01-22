@@ -69,6 +69,11 @@ class ContinuousPhysics(GridPhysics):
         Updates sprite.orientation and sprite.speed, which together make up
         the sprite's velocity.
         """
+
+        # TODO understand how this is now completely different from
+        # gridphysics activeMovement, and why I changed it to be so?
+        # Might have to grab old schematics.
+
         if speed is None:
             old_velocity = sprite.velocity
         else:

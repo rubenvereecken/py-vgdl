@@ -169,6 +169,9 @@ class Walker(Missile):
             else:
                 d = game.random_generator.choice([-1, 1])
             self.physics.active_movement(self, (d, 0))
+
+            # TODO this doesn't actually work anymore
+
         Missile.update(self, game)
 
 class WalkJumper(Walker):
