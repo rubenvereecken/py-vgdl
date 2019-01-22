@@ -109,7 +109,7 @@ class PygameRenderer:
         offset = rect.top+2*rect.height/3.
         for r in sorted(sprite.resources.keys()):
             wiggle = rect.width/10.
-            prop = max(0,min(1,sprite.resources[r] / float(self.game.resources_limits[r])))
+            prop = max(0,min(1,sprite.resources[r] / float(self.game.domain.resources_limits[r])))
             if prop != 0:
                 filled = pygame.Rect(rect.left+wiggle/2, offset, prop*(rect.width-wiggle), barheight)
                 rest   = pygame.Rect(rect.left+wiggle/2+prop*(rect.width-wiggle), offset, (1-prop)*(rect.width-wiggle), barheight)

@@ -11,18 +11,18 @@ class AvatarOrientedObserver(StateObserver):
 
 
     def get_observation(self):
-        avatars = self._game.get_avatars()
+        avatars = self.game.get_avatars()
         assert avatars
         avatar = avatars[0]
 
         avatar_pos = avatar.rect.topleft
-        resources = [avatar.resources[r] for r in self._game.notable_resources]
+        resources = [avatar.resources[r] for r in self.game.domain.notable_resources]
 
         sprite_distances = []
-        for key in self._game.sprite_registry.sprite_keys:
+        for key in self.game.sprite_registry.sprite_keys:
             dist = 100
-            for s in self._game.get_sprites(key):
-                dist = min(self._get_distance(avatar, s)/self._game.block_size, dist)
+            for s in self.game.get_sprites(key):
+                dist = min(self._get_distance(avatar, s)/self.game.block_size, dist)
             sprite_distances.append(dist)
 
         obs = KeyValueObservation(
@@ -47,7 +47,7 @@ class NotableSpritesObserver(StateObserver):
 
         sprite_keys = list(self.notable_sprites)
         num_classes = len(sprite_keys)
-        resource_types = self._game.notable_resources
+        resource_types = self.game.domain.notable_resources
 
         for i, key in enumerate(sprite_keys):
             class_one_hot = [float(j==i) for j in range(num_classes)]
@@ -55,7 +55,7 @@ class NotableSpritesObserver(StateObserver):
             # TODO this code is currently unsafe as getSprites does not
             # guarantee the same order for each call (Python < 3.6),
             # meaning observations will have inconsistent ordering of values
-            for s in self._game.get_sprites(key):
+            for s in self.game.get_sprites(key):
                 position = self._rect_to_pos(s.rect)
                 if hasattr(s, 'orientation'):
                     orientation = [float(a) for a in s.orientation]

@@ -45,8 +45,8 @@ class VGDLEnv(gym.Env):
         self.game_args.update(kwargs)
 
         # Need to build a sample level to get the available actions and screensize....
-        self.game = vgdl.VGDLParser().parse_game(self.game_desc, **self.game_args)
-        self.game.build_level(self.level_desc)
+        domain = vgdl.VGDLParser().parse_game(self.game_desc, **self.game_args)
+        self.game = domain.build_level(self.level_desc)
 
         self.score_last = self.game.score
 
@@ -110,8 +110,9 @@ class VGDLEnv(gym.Env):
         return state, reward, terminal, {}
 
     def reset(self):
-        self.game.reset()
-        self.game.build_level(self.level_desc)
+        # TODO improve the reset with the new domain split
+        # self.game.reset()
+        self.game = self.game.domain.build_level(self.level_desc)
         self.score_last = self.game.score
         state = self._get_obs()
         return state
