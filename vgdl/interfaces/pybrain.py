@@ -3,7 +3,7 @@ import numpy as np
 from pybrain.rl.environments.environment import Environment
 from pybrain.rl.environments.episodic import EpisodicTask
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from vgdl.core import Action
 from vgdl.state import StateObserver, Observation
 
@@ -60,7 +60,7 @@ class VGDLPybrainEnvironment(Environment):
         self.numActions = len(self.action_set)
 
 
-    def performAction(self, action: Action):
+    def performAction(self, action: Union[Action, int]):
         if not isinstance(action, Action):
             action = self.action_set[int(action)]
         assert isinstance(action, Action)
@@ -73,6 +73,10 @@ class VGDLPybrainTask(EpisodicTask):
     a specific game with reward functi
     on and everything and is itself episodic.
     """
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.get_observation = self.getObservation
+        self.perform_action = self.performAction
 
     def getReward(self):
         # TODO this is actually accumulated, but let's roll for now

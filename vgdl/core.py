@@ -410,7 +410,7 @@ class Action:
     def __eq__(self, other):
         # if not hasattr(other, 'keys'):
         #     return False
-        return self.keys == other.keys
+        return isinstance(other, Action) and self.keys == other.keys
 
     def __hash__(self):
         return hash(self.keys)
