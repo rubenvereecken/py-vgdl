@@ -231,10 +231,10 @@ class SpriteRegistry:
         assert set(self.sprite_keys).issuperset(state.keys()), \
             'Known sprite keys should match'
 
-        other_ids = set([sprite['id'] for sprites in state.values() for sprite in sprites])
+        other_ids = {sprite['id'] for sprites in state.values() for sprite in sprites}
         # Do not consider Immutables, and expect that they were not saved.
-        known_ids = set(id for id, sprite in self._sprite_by_id.items() \
-                        if not isinstance(sprite, Immutable))
+        known_ids = {id for id, sprite in self._sprite_by_id.items() \
+                     if not isinstance(sprite, Immutable)}
         deleted_ids = known_ids.difference(other_ids)
         added_ids = other_ids.difference(known_ids)
 
@@ -463,8 +463,9 @@ class BasicGame:
         self.terminations = []
         # resource properties, used to draw resource bar on the avatar sprite
         # TODO get rid of defaults
-        self.resources_limits = defaultdict(lambda: 1)
-        # self.resources_limits = {}
+        # defaultdicts don't pickle well (it's the lambdas)
+        # self.resources_limits = defaultdict(lambda: 1)
+        self.resources_limits = {}
 
         from .ontology import GOLD
         # self.resources_colors = defaultdict(lambda: GOLD)
