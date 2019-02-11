@@ -3,6 +3,7 @@ import time
 import itertools
 import numpy as np
 import importlib
+from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
@@ -17,14 +18,31 @@ class HumanController:
             logger.debug('Assuming Atari env, enable AtariObservationWrapper')
             from .wrappers import AtariObservationWrapper
             self.env = AtariObservationWrapper(self.env)
-        if trace_path is not None and importlib.util.find_spec('gym_recording') is not None:
-            from gym_recording.wrappers import TraceRecordingWrapper
-            self.env = TraceRecordingWrapper(self.env, trace_path)
-        elif trace_path is not None:
-            logger.warn('trace_path provided but could not find the gym_recording package')
+        # if trace_path is not None and importlib.util.find_spec('gym_recording') is not None:
+        #     from gym_recording.wrappers import TraceRecordingWrapper
+        #     self.env = TraceRecordingWrapper(self.env, trace_path)
+        # elif trace_path is not None:
+        #     logger.warn('trace_path provided but could not find the gym_recording package')
+        if trace_path is not None:
+            trace_path = Path(trace_path)
+            trace_path.mkdir(parents=True, exist_ok=True)
 
+        self.trace_path = trace_path
         self.fps = fps
         self.cum_reward = 0
+
+        self.rewards = []
+        self.actions = []
+        self.observations = []
+
+
+    def on_start(self):
+        obs = self.env.unwrapped.observer.get_observation()
+        self.observations.append(obs)
+
+
+    def when_done(self):
+        self.save_traces()
 
 
     def play(self, pause_on_finish=False):
@@ -72,6 +90,8 @@ class HumanController:
 
             time.sleep(1. / self.fps)
 
+        self.when_done()
+
 
     def debug(self, *args, **kwargs):
         # Convenience debug breakpoint
@@ -91,7 +111,27 @@ class HumanController:
 
 
     def after_step(self, step):
-        pass
+        env = self.env.unwrapped
+        game = self.env.unwrapped.game
+        action = env.unwrapped._action_keys[self.controls.current_action]
+        reward = game.last_reward
+        obs = env.observer.get_observation()
+        self.rewards.append(reward)
+        self.actions.append(action)
+        self.observations.append(obs)
+
+
+    def save_traces(self):
+        if self.trace_path is None:
+            return
+        import pickle
+        time_str = time.strftime("%d-%m-%Y-%H-%M-%S", time.gmtime())
+        with self.trace_path.joinpath(time_str).with_suffix('.pkl').open('wb') as f:
+            pickle.dump({
+                'observations': self.observations,
+                'rewards': self.rewards,
+                'actions': self.actions,
+            }, f)
 
 
 class HumanAtariController(HumanController):
