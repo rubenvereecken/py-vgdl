@@ -521,20 +521,30 @@ class BasicGame:
 
         return level
 
-    def identity(self):
+    def identity_dict(self):
         """
         Meant for __eq__ and __hash__, returns attributes that identify a
         BasicGame domain without level
         """
         import dill
+        # TODO cache this?
         return dict(
             block_size=self.block_size,
-            effects=[dill.dumps(effect) for effect in self.collision_eff],
+            effects=tuple(dill.dumps(effect) for effect in self.collision_eff),
             # This summarises the domain. Careful, dill doesn't serialise class
             # definitions, so code changes won't be reflected.
             classes=dill.dumps(self.domain_registry.classes),
             class_args=dill.dumps(self.domain_registry.class_args)
         )
+
+    def identity(self):
+        return tuple(self.identity_dict().values())
+
+    def __hash__(self):
+        return hash(self.identity())
+
+    def __eq__(self, other):
+        return self.identity() == other.identity()
 
 
 class BasicGameLevel:
@@ -592,10 +602,17 @@ class BasicGameLevel:
         a level completely
         """
         import dill
-        return dict(
-            domain=self.domain.identity(),
-            levelstring=self.levelstring,
-            seed=self.seed,
+        # TODO careful this includes seed, re-visit this when we reconsider
+        # stochastic games more carefully
+        # Really I think seed should be part of game state or something
+        # return dict(
+        #     domain=self.domain.identity(),
+        #     levelstring=self.levelstring,
+        #     # seed=self.seed,
+        # )
+        return (
+            self.domain.identity(),
+            self.levelstring,
         )
 
     def __hash__(self):
@@ -622,6 +639,8 @@ class BasicGameLevel:
     def __getstate__(self):
         """
         It is recommended to save a level and a game state separately.
+        # TODO: decide on how this behaves.. right now I suggest
+        to save game and state separately, but not doing so still works
         """
         d = self.__dict__.copy()
         d['gamestate'] = self.get_game_state()

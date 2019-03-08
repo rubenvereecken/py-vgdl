@@ -61,6 +61,9 @@ class StateObserver:
         length = len(obs.as_array())
         return length
 
+    def __repr__(self):
+        return self.__class__.__name__
+
 
 class AbsoluteObserver(StateObserver):
     """
