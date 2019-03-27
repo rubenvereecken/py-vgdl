@@ -37,7 +37,7 @@ class PygameRenderer:
             self.background = pygame.Surface(self.screen_dims)
         else:
             self.screen = pygame.Surface(self.screen_dims)
-            self.screen.fill((0,0,0))
+            self.screen.fill((255, 255, 255))
             self.background = self.screen.copy()
             self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
             title_prefix = 'VGDL'
