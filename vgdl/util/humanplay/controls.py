@@ -207,6 +207,10 @@ class ReplayVGDLControls(VGDLControls):
 
         # Capture special key presses, unset other ones
         super().capture_key_presses()
+        # We don't want to go through the trace while paused
+        if self.pause:
+            return
+
         self.activated = {k: False for k in self.activated.keys()}
 
         if self.action_idx >= len(self.replay_actions):

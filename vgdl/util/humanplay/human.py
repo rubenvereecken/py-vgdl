@@ -27,10 +27,14 @@ class HumanController:
         self.cum_reward = 0
 
 
-    def play(self, pause_on_finish=False):
+    def play(self, pause_on_finish=False, pause_on_start=False):
         self.env.reset()
 
         for step_i in itertools.count():
+            if pause_on_start:
+                self.controls.pause = True
+                pause_on_start = False
+
             # Only does something for VGDL because Atari's Pyglet is event-based
             self.controls.capture_key_presses()
 
