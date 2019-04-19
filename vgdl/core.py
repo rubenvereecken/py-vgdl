@@ -531,6 +531,7 @@ class BasicGame:
         return dict(
             block_size=self.block_size,
             effects=tuple(dill.dumps(effect) for effect in self.collision_eff),
+            terminations=tuple(dill.dumps(term) for term in self.terminations),
             # This summarises the domain. Careful, dill doesn't serialise class
             # definitions, so code changes won't be reflected.
             classes=dill.dumps(self.domain_registry.classes),

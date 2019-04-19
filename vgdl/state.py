@@ -43,6 +43,16 @@ class StateObserver:
     def __init__(self, game: BasicGame) -> None:
         self.game = game
 
+#     @property
+#     def game(self):
+#         import ipdb; ipdb.set_trace()
+#         return self._game
+
+#     @game.setter
+#     def game(self, game):
+#         print('>>>>>>>')
+#         self._game = game
+
     def get_observation(self) -> Observation:
         return KeyValueObservation()
 
@@ -61,8 +71,16 @@ class StateObserver:
         length = len(obs.as_array())
         return length
 
+    def set_game(self, game):
+        self.game = game
+
     def __repr__(self):
         return self.__class__.__name__
+
+    def __getstate__(self):
+        state = vars(self).copy()
+        state.pop('game', None)
+        return state
 
 
 class AbsoluteObserver(StateObserver):
