@@ -1,7 +1,7 @@
 from .registration import registry
 from .parser import VGDLParser
 
-__all__ = ['VGDLParser', 'ontology', 'registry']
+# __all__ = ['VGDLParser', 'ontology', 'registry']
 
 from .core import SpriteRegistry
 from .core import BasicGame, BasicGameLevel, GameState

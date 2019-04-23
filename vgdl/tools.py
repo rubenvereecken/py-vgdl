@@ -40,6 +40,7 @@ def freeze_dict(original, freezers={}):
     - Assumes item ordering doesn't matter (ignores OrderedDict)
     - Assumes lists are unordered. This is a big one actually
         .. so how about you use tuples for sorted things? Hmm.
+    - Assumes False, 0 and None are interchangeable
     """
     if not _is_dict(original):
         return original
@@ -57,6 +58,9 @@ def freeze_dict(original, freezers={}):
             d[k] = v
         elif isinstance(v, pygame.Rect) or isinstance(v, pygame.math.Vector2):
             d[k] = tuple(v)
+        elif v is None:
+            # Careful: None and 0 will be considered the same!
+            d[k] = 0
         else:
             d[k] = v
 
