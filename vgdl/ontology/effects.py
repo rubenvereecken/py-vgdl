@@ -5,9 +5,8 @@ from typing import NewType, Optional, Union, Dict, List, Tuple
 import pygame
 from pygame.math import Vector2
 
-from vgdl.core import VGDLSprite, Resource
+from vgdl.core import VGDLSprite, Resource, Effect
 from vgdl.tools import once_per_step
-# from vgdl.ontology.constants import
 from .constants import *
 
 
@@ -209,7 +208,7 @@ def collectResource(sprite, partner, game):
     """ Adds/increments the resource type of sprite in partner """
     assert isinstance(sprite, Resource)
     r = sprite.resource_type
-    partner.resources[r] = max(0, min(partner.resources[r]+sprite.value, game.domain.resources_limits[r]))
+    partner.resources[r] = max(0, min(partner.resources[r]+sprite.value, game.domain.resources_limits.get(r, float('+inf'))))
 
 def changeResource(sprite, partner, game, resource, value=1):
     """ Increments a specific resource type in sprite """
@@ -269,3 +268,13 @@ def teleportToExit(sprite, partner, game):
     e = game.random_generator.choice(game.sprite_registry.group(partner.stype))
     sprite.rect = e.rect
     sprite.lastmove = 0
+
+class SpendResource(Effect):
+    def __init__(self, *args, **kwargs):
+        self.target = kwargs.pop('target')
+        self.amount = kwargs.pop('amount', 1)
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, avatar, sprite, game):
+        spend = min(avatar.resources[self.target], self.amount)
+        avatar.resources[self.target] -= spend

@@ -2,7 +2,7 @@ import pygame
 from pygame.math import Vector2
 
 from vgdl.render import SpriteLibrary
-from vgdl.ontology.constants import RIGHT
+from vgdl.ontology.constants import RIGHT, BLACK, WHITE, GOLD
 
 import os
 import numpy as np
@@ -103,7 +103,6 @@ class PygameRenderer:
 
     def draw_resources(self, sprite, rect):
         """ Draw progress bars on the bottom third of the sprite """
-        BLACK = (0, 0, 0)
         tot = len(sprite.resources)
         barheight = rect.height/3.5/tot
         offset = rect.top+2*rect.height/3.
@@ -114,7 +113,7 @@ class PygameRenderer:
             if prop != 0:
                 filled = pygame.Rect(rect.left+wiggle/2, offset, prop*(rect.width-wiggle), barheight)
                 rest   = pygame.Rect(rect.left+wiggle/2+prop*(rect.width-wiggle), offset, (1-prop)*(rect.width-wiggle), barheight)
-                self.screen.fill(self.game.domain.resources_colors[r], filled)
+                self.screen.fill(self.game.domain.resources_colors.get(r, GOLD), filled)
                 self.screen.fill(BLACK, rest)
                 offset += barheight
 

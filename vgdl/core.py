@@ -22,6 +22,10 @@ class SpriteRegistry:
     and all the sprite instances during the life of a game.
 
     TODO: may need to split this into separate class and instance registries.
+
+    Lingo:
+        key - main identifier
+        stypes - main identifier and any parent types
     """
 
     def __init__(self):
@@ -1000,6 +1004,12 @@ class VGDLSprite:
     @property
     def lastdirection(self):
         return Vector2(self.rect.topleft) - Vector2(self.lastrect.topleft)
+
+    def count_resource(self, resource):
+        return self.resources.get(resource, 0)
+
+    def has_resource(self, resource):
+        return bool(self.count_resource(resource))
 
     def __repr__(self):
         return "{} `{}` at ({}, {})".format(self.key, self.id, *self.rect.topleft)
