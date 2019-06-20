@@ -1,4 +1,4 @@
-# PyVGDL
+# PyVGDL 2.0
 
 A reimplementation on steroids
 of the original
@@ -111,3 +111,9 @@ whereas this repository
 aims to be a complete yet lightweight
 Python implementation
 for AI research.
+
+## TODO
+- While manual testing has been done by multiple parties,
+  we are in desperate need of unit and scenario tests.
+- Some more basic ontology functionality is welcome.
+- Could use another PEP check.
