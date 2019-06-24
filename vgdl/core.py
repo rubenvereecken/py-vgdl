@@ -104,8 +104,8 @@ class SpriteRegistry:
 
     def kill_sprite(self, sprite: 'VGDLSprite'):
         """ Kills a sprite while keeping track of it """
-        assert sprite is self._sprite_by_id[sprite.id], \
-            'Unknown sprite %s' % sprite
+        if not sprite is self._sprite_by_id[sprite.id]:
+            logging.debug('Unknown sprite %s (id=%s)', sprite, id(sprite))
         sprite.alive = False
         self._live_sprites_by_key[sprite.key].remove(sprite)
         self._dead_sprites_by_key[sprite.key].append(sprite)
