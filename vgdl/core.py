@@ -1103,11 +1103,12 @@ class FunctionalEffect(Effect):
     """
 
     def __init__(self, fn, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, scoreChange=kwargs.pop('scoreChange', 0))
         self.call_fn = fn
+        self.fn_args = kwargs
 
     def __call__(self, sprite, partner, game):
-        return self.call_fn(sprite, partner, game)
+        return self.call_fn(sprite, partner, game, **self.fn_args)
 
     @property
     def is_stochastic(self):
