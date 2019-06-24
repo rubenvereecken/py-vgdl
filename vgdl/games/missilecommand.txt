@@ -1,4 +1,4 @@
-BasicGame
+BasicGame block_size=10
   SpriteSet
     floor > Immovable img=oryx/backBlack
     city  > Immovable color=GREEN img=newset/city1 randomtiling=0.5
