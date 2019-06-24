@@ -55,6 +55,7 @@ class SpriteRegistry:
 
     def register_sprite_class(self, key, cls, args, stypes):
         assert not key in self.sprite_keys, 'Sprite key already registered'
+        assert cls is not None
         self.classes[key] = cls
         self.class_args[key] = args
         self.stypes[key] = stypes

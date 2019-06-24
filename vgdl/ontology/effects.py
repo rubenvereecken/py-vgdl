@@ -277,3 +277,35 @@ class SpendResource(Effect):
     def __call__(self, avatar, sprite, game):
         spend = min(avatar.resources[self.target], self.amount)
         avatar.resources[self.target] -= spend
+
+class SpendAvatarResource(Effect):
+    def __init__(self, *args, **kwargs):
+        self.target = kwargs.pop('target')
+        self.amount = kwargs.pop('amount', 1)
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, this, that, game):
+        avatar = game.sprite_registry.get_avatar()
+        spend = min(avatar.resources[self.target], self.amount)
+        avatar.resources[self.target] -= spend
+
+class KillOthers(Effect):
+    def __init__(self, *args, **kwargs):
+        self.target = kwargs.pop('target')
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, avatar, _, game):
+        for sprite in game.sprite_registry.with_stype(self.target):
+            game.sprite_registry.kill_sprite(sprite)
+
+class KillIfAvatarWithoutResource(Effect):
+    def __init__(self, *args, **kwargs):
+        self.target = kwargs.pop('target')
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, this, that, game):
+        # `this` is not necessarily the avatar
+        avatar = game.sprite_registry.get_avatar()
+        if avatar.has_resource(self.target):
+            return
+        game.sprite_registry.kill_sprite(this)

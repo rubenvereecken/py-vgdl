@@ -104,6 +104,7 @@ class AbsoluteObserver(StateObserver):
 
 class AbsoluteGridObserver(StateObserver):
     """
+    TODO: This is actually deprecated, get rid of it.
     - Assumes a single-avatar grid physics game
     - Observation is (x, y) of avatar converted to grid (not raw pixels)
     """
@@ -152,3 +153,7 @@ class ResourcesObserver(StateObserver):
         resources = { key: avatar.resources.get(key, 0) for key in self.game.domain.notable_resources }
         obs = obs.merge(KeyValueObservation(resources))
         return obs
+
+
+class PositionAndResourceObserver(AbsoluteObserver, ResourcesObserver):
+    pass
