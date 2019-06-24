@@ -12,9 +12,9 @@ BasicGame
         goat   wall goat   > stepBack
         avatar wall    > stepBack
         avatar  angry  > killSprite scoreChange=-1
-        carcass scared > killSprite
         scared avatar  > transformTo stype=carcass scoreChange=1
         scared carcass > transformTo stype=angry
+        carcass scared > killSprite
 
     LevelMapping
         0 > scared floor

@@ -1,9 +1,9 @@
-BasicGame key_handler=Pulse square_size=40
+BasicGame block_size=1
     SpriteSet
         floor > Immovable img=newset/floor2
         hole   > Immovable color=DARKBLUE img=oryx/cspell4
         avatar > MovingAvatar img=oryx/knight1
-        box    > Passive img=newset/block1 shrinkfactor=0.8
+        box    > Passive img=newset/block1
         wall > Immovable img=oryx/wall3 autotiling=True
     LevelMapping
         0 > floor hole

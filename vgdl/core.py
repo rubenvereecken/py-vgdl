@@ -684,9 +684,8 @@ class BasicGameLevel:
 
     def num_sprites(self, key):
         """ Abstract groups are computed on demand only """
-        deleted = len([s for s in self.kill_list if key in s.stypes])
-
-        return len(self.sprite_registry.with_stype(key)) - deleted
+        num = len(self.sprite_registry.with_stype(key))
+        return num
 
     def get_sprites(self, key):
         return self.sprite_registry.with_stype(key)
@@ -1002,13 +1001,13 @@ class VGDLSprite:
             self.orientation = v.normalize()
 
     @property
-    def lastdirection(self):
+    def lastdirection(self) -> Vector2:
         return Vector2(self.rect.topleft) - Vector2(self.lastrect.topleft)
 
     def count_resource(self, resource):
         return self.resources.get(resource, 0)
 
-    def has_resource(self, resource):
+    def has_resource(self, resource) -> bool:
         return bool(self.count_resource(resource))
 
     def __repr__(self):

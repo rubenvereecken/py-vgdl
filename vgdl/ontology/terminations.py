@@ -16,10 +16,9 @@ __all__ = [
 
 
 class Timeout(Termination):
-    def __init__(self, limit=0):
+    def __init__(self, limit=0, **kwargs):
         super().__init__(**kwargs)
         self.limit = limit
-        self.win = win
 
     def is_done(self, game):
         if game.time >= self.limit:

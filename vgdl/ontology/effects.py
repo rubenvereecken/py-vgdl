@@ -6,7 +6,8 @@ import pygame
 from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Resource, Effect
-from vgdl.tools import once_per_step
+from vgdl.tools import once_per_step, unit_vector
+from vgdl.ontology.physics import *
 from .constants import *
 
 
@@ -39,23 +40,21 @@ def stepBack(sprite, partner, game):
 
 def undoAll(sprite, partner, game):
     """ Revert last moves of all sprites. """
-    for s in game:
+    for s in game.sprite_registry.sprites():
         s.rect = s.lastrect
 
 def bounceForward(sprite, partner, game):
     """ The partner sprite pushed, so if possible move in the opposite direction. """
-    assert False, 'TODO'
-    sprite.physics.active_movement(sprite, unitVector(partner.lastdirection))
-    game._updateCollisionDict(sprite)
+    sprite.physics.active_movement(sprite, unit_vector(partner.lastdirection))
+    # game._updateCollisionDict(sprite)
 
 def conveySprite(sprite, partner, game):
     """ Moves the partner in target direction by some step size. """
     tmp = sprite.lastrect
-    assert False, 'TODO'
-    v = unitVector(partner.orientation)
+    v = unit_vector(partner.orientation)
     sprite.physics.active_movement(sprite, v, speed=partner.strength)
     sprite.lastrect = tmp
-    game._updateCollisionDict(sprite)
+    # game._updateCollisionDict(sprite)
 
 def windGust(sprite, partner, game):
     """ Moves the partner in target direction by some step size, but stochastically
@@ -63,19 +62,19 @@ def windGust(sprite, partner, game):
     s = game.random_generator.choice([partner.strength, partner.strength + 1, partner.strength - 1])
     if s != 0:
         tmp = sprite.lastrect.copy()
-        v = unitVector(partner.orientation)
+        v = unit_vector(partner.orientation)
         sprite.physics.active_movement(sprite, v, speed=s)
         sprite.lastrect = tmp
-        game._updateCollisionDict(sprite)
+        # game._updateCollisionDict(sprite)
 
 def slipForward(sprite, partner, game, prob=0.5):
     """ Slip forward in the direction of the current orientation, sometimes."""
     if prob > game.random_generator.random():
         tmp = sprite.lastrect
-        v = unitVector(sprite.orientation)
+        v = unit_vector(sprite.orientation)
         sprite.physics.active_movement(sprite, v, speed=1)
         sprite.lastrect = tmp
-        game._updateCollisionDict(sprite)
+        # game._updateCollisionDict(sprite)
 
 def attractGaze(sprite, partner, game, prob=0.5):
     """ Turn the orientation to the value given by the partner. """
@@ -89,7 +88,7 @@ def turnAround(sprite, partner, game):
     sprite.lastmove = sprite.cooldown
     sprite.physics.active_movement(sprite, DOWN)
     reverseDirection(sprite, partner, game)
-    game._updateCollisionDict(sprite)
+    # game._updateCollisionDict(sprite)
 
 def reverseDirection(sprite, partner, game):
     sprite.orientation = (-sprite.orientation[0], -sprite.orientation[1])
@@ -101,7 +100,7 @@ def bounceDirection(sprite, partner, game, friction=0):
     """ The centers of the objects determine the direction"""
     stepBack(sprite, partner, game)
     inc = sprite.orientation
-    snorm = unitVector((-sprite.rect.centerx + partner.rect.centerx,
+    snorm = unit_vector((-sprite.rect.centerx + partner.rect.centerx,
                         - sprite.rect.centery + partner.rect.centery))
     dp = snorm[0] * inc[0] + snorm[1] * inc[1]
     sprite.orientation = (-2 * dp * snorm[0] + inc[0], -2 * dp * snorm[1] + inc[1])
@@ -212,7 +211,7 @@ def collectResource(sprite, partner, game):
 
 def changeResource(sprite, partner, game, resource, value=1):
     """ Increments a specific resource type in sprite """
-    sprite.resources[resource] = max(0, min(sprite.resources[resource]+value, game.domain.resources_limits[resource]))
+    sprite.resources[resource] = max(0, min(sprite.resources[resource]+value, game.domain.resources_limits.get(resource, float('+inf'))))
 
 def spawnIfHasMore(sprite, partner, game, resource, stype, limit=1):
     """ If 'sprite' has more than a limit of the resource type given, it spawns a sprite of 'stype'. """
@@ -257,7 +256,7 @@ def pullWithIt(sprite, partner, game):
     if not once_per_step(sprite, game, 't_lastpull'):
         return
     tmp = sprite.lastrect
-    v = unitVector(partner.lastdirection)
+    v = partner.lastdirection.normalize() if partner.lastdirection else Vector2(1, 0)
     sprite._update_position(v, partner.speed * sprite.physics.gridsize[0])
     if isinstance(sprite.physics, ContinuousPhysics):
         sprite.speed = partner.speed

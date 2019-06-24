@@ -1,4 +1,4 @@
-BasicGame
+BasicGame block_size=4
     SpriteSet
         floor > Immovable img=oryx/backBiege
 

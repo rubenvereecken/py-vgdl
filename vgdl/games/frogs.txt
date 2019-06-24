@@ -1,4 +1,4 @@
-BasicGame
+BasicGame block_size=10
     SpriteSet
         grass > Immovable img=oryx/grass_0 hidden=True
         highway > Immovable img=newset/highway hidden=True
@@ -10,7 +10,7 @@ BasicGame
             goal  > color=GREEN img=newset/exit2
         log    > Missile   orientation=LEFT  speed=0.1 color=BROWN img=newset/log
         truck  >
-            rightTruck  > Missile   orientation=RIGHT 
+            rightTruck  > Missile   orientation=RIGHT
                 fastRtruck  > speed=0.2  color=ORANGE img=newset/car3R
                 slowRtruck  > speed=0.1  color=RED img=newset/car4R
             leftTruck  > Missile   orientation=LEFT
@@ -19,7 +19,10 @@ BasicGame
 
         avatar > MovingAvatar img=newset/girl1
         wall > Immovable color=BLACK img=oryx/tree2
-        
+
+        # Not actually used as a sprite
+        safety > Resource
+
     InteractionSet
         goal avatar  > killSprite scoreChange=1
         avatar log   > changeResource resource=safety value=2
@@ -30,11 +33,11 @@ BasicGame
         avatar truck > killSprite
         log    EOS   > killSprite
         truck  EOS   > wrapAround
-    
+
     TerminationSet
         SpriteCounter stype=goal   limit=0 win=True
         SpriteCounter stype=avatar limit=0 win=False
-    
+
     LevelMapping
         g > goal grass
         0 > water grass

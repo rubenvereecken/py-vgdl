@@ -1,4 +1,4 @@
-BasicGame
+BasicGame block_size=5
 	SpriteSet
 		sword > Flicker color=LIGHTGRAY limit=1 singleton=True img=oryx/pickaxe
 		wall > Immovable autotiling=true img=oryx/dirtWall_0
