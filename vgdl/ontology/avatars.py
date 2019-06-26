@@ -9,6 +9,7 @@ from pygame.math import Vector2
 
 from vgdl.core import VGDLSprite, Avatar, Action, Resource
 from vgdl.tools import unit_vector
+from vgdl.util import *
 from .constants import *
 from .sprites import SpriteProducer, OrientedSprite
 from .physics import GridPhysics, ContinuousPhysics, GravityPhysics
@@ -28,6 +29,7 @@ __all__ = [
     'RotatingAvatar',
     'RotatingFlippingAvatar',
     'ShootAvatar',
+    'ShootEverywhereAvatar',
     'VerticalAvatar',
 ]
 
@@ -266,6 +268,53 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
                 sprite.orientation = unit_vector(self.orientation)
 
             self._spend_ammo()
+
+class ShootEverywhereAvatar(MovingAvatar, SpriteProducer):
+    """
+    Does not have an orientation and simply shoots in all four directions.
+    """
+    ammo=None
+
+    @classmethod
+    def declare_possible_actions(cls):
+        from pygame.locals import K_SPACE
+        actions = super().declare_possible_actions()
+        actions["SPACE"] = Action(K_SPACE)
+        return actions
+
+    def __init__(self, stype, **kwargs):
+        self.stype = stype
+        MovingAvatar.__init__(self, **kwargs)
+
+    def update(self, game):
+        MovingAvatar.update(self, game)
+        if self._has_ammo():
+            self._shoot(game)
+
+    def _has_ammo(self):
+        if self.ammo is None:
+            return True
+        elif self.ammo in self.resources:
+            return self.resources[self.ammo] > 0
+        return False
+
+    def _spend_ammo(self):
+        if self.ammo is not None and self.ammo in self.resources:
+            self.resources[self.ammo] -= 1
+
+    def _shoot(self, game):
+        from pygame.locals import K_SPACE
+        if self.stype and K_SPACE in game.active_keys:
+            directions = BASEDIRS
+            neighbors = [ neighbor_position(self.lastrect, dir) for dir in directions ]
+            sprites = [ game.create_sprite(self.stype, neighbor) for neighbor in neighbors ]
+
+            for direction, sprite in zip(directions, sprites):
+                if sprite and isinstance(sprite, OrientedSprite):
+                    sprite.orientation = direction
+
+            self._spend_ammo()
+
 
 class AimedAvatar(ShootAvatar):
     """ Can change the direction of firing, but not move. """
