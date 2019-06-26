@@ -740,7 +740,9 @@ class BasicGameLevel:
             setattr(self, k, v)
 
     def _event_handling(self):
-        self.lastcollisions: Dict[str, Tuple['VGDLSprite', int]] = {}
+        # TODO refactor lastcollisions, it doesn't seem very useful anymore
+        # stype -> sprites
+        self.lastcollisions: Dict[str, List['VGDLSprite']] = {}
         ss = self.lastcollisions
         for effect in self.domain.collision_eff:
             g1 = effect.actor_stype
@@ -750,11 +752,11 @@ class BasicGameLevel:
             for g in [g1, g2]:
                 if g not in ss:
                     sprites = self.sprite_registry.with_stype(g)
-                    ss[g] = (sprites, len(sprites))
+                    ss[g] = sprites
 
-            # special case for end-of-screen
+            # special case for EOS=end-of-screen
             if g2 == "EOS":
-                ss1, l1 = ss[g1]
+                ss1 = ss[g1]
                 for s1 in ss1:
                     game_rect = pygame.Rect((0, 0), self.screensize)
                     if not game_rect.contains(s1.rect):
@@ -767,10 +769,24 @@ class BasicGameLevel:
                             ipdb.set_trace()
                 continue
 
+            # special case for any tile, as long as it's in the game window still
+            if g2 == "ANY":
+                for s1 in self.lastcollisions[g1]:
+                    game_rect = pygame.Rect((0, 0), self.screensize)
+                    if not game_rect.contains(s1.rect):
+                        continue
+                    try:
+                        self.add_score(effect.score)
+                        effect(s1, None, self)
+                    except Exception as e:
+                        logging.critical("Exception during effect {}".format(effect))
+                continue
+
+
             # TODO care about efficiency again sometime, test short sprite list vs long
             # Can do this by sorting first?
-            sprites, _ = ss[g1]
-            others, _ = ss[g2]
+            sprites = ss[g1]
+            others = ss[g2]
 
             if len(sprites) == 0 or len(others) == 0:
                 continue

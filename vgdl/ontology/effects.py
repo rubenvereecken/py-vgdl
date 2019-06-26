@@ -309,3 +309,7 @@ class KillIfAvatarWithoutResource(Effect):
         if avatar.has_resource(self.target):
             return
         game.sprite_registry.kill_sprite(this)
+
+class NullEffect(Effect):
+    def __call__(self, this, that, game):
+        pass
