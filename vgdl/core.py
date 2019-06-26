@@ -4,7 +4,7 @@ import logging
 import random
 from collections import defaultdict, UserDict, deque
 from functools import partial
-from typing import NewType, Optional, Union, Dict, List, Tuple
+from typing import NewType, Optional, Union, Dict, List, Tuple, Generator
 
 import pygame
 import pygame.key
@@ -131,7 +131,7 @@ class SpriteRegistry:
         return False
 
     # def groups(self, include_dead=False) -> Dict[str, List['VGDLSprite']]:
-    def groups(self, include_dead=False):
+    def groups(self, include_dead=False) -> Generator[Tuple[str, List['VGDLSprite']], None, None]:
         if not include_dead:
             # TODO not sure if include_dead is worth making this a generator
             for k, v in self._live_sprites_by_key.items():
@@ -897,6 +897,18 @@ class BasicGameLevel:
                 # Terminations are allowed to specify a score
                 self.add_score(t.score)
                 break
+
+    def colliding_sprites(self, sprite, stype=None) -> Generator['VGDLSprite', None, None]:
+        if stype is not None:
+            sprites = self.sprite_registry.with_stype(stype)
+        else:
+            sprites = self.sprite_registry.sprites()
+
+        for other in sprites:
+            if sprite == other:
+                continue
+            if sprite.rect.colliderect(other.rect):
+                yield other
 
 
 class VGDLSprite:
