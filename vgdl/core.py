@@ -811,7 +811,7 @@ class BasicGameLevel:
 
     def add_score(self, score):
         self.score += score
-        self.last_reward = score
+        self.last_reward += score
 
     def get_possible_actions(self) -> Dict[Tuple[int], Action]:
         """

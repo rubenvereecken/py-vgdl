@@ -79,10 +79,7 @@ class VGDLPybrainTask(EpisodicTask):
         self.perform_action = self.performAction
 
     def getReward(self):
-        # TODO this is actually accumulated, but let's roll for now
-        # TODO should make score change available in game
-        score = self.env.game.score
-        return score
+        return self.env.game.last_reward
 
     def isFinished(self):
         return self.env.game.ended
