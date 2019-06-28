@@ -131,12 +131,20 @@ KEYS_TO_VGDL_ACTION = {
     (pygame.K_SPACE, pygame.K_LEFT): 'SPACE_LEFT',
 }
 
+def _expand_vgdl_keys():
+    for num in range(ord('a'), ord('z')):
+        char = chr(num)
+        pygame_key = getattr(pygame, 'K_%s' % char)
+        KEYS_TO_VGDL_ACTION[(pygame_key,)] = char
+        setattr(PygameKeys, char, pygame_key)
+
+_expand_vgdl_keys()
+
 # for k, v in list(KEYS_TO_VGDL_ACTION.items()):
 #     KEYS_TO_VGDL_ACTION[frozenset(k)] = v
 
 # VGDL_ACTION_TO_KEYS = { v: k for k, v in KEYS_TO_VGDL_ACTION.items() }
 VGDL_ACTION_TO_KEYS = { k: frozenset(k) for k in KEYS_TO_VGDL_ACTION.keys() }
-
 
 class VGDLControls(Controls):
     def __init__(self, action_selection: List[str]):
