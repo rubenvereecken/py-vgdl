@@ -910,6 +910,16 @@ class BasicGameLevel:
             if sprite.rect.colliderect(other.rect):
                 yield other
 
+    def sprites_at(self, topleft: Tuple, stype=None) -> Generator:
+        if stype is not None:
+            sprites = self.sprite_registry.with_stype(stype)
+        else:
+            sprites = self.sprite_registry.sprites()
+
+        for other in sprites:
+            if sprite.rect.topleft == topleft:
+                yield other
+
 
 class VGDLSprite:
     """ Base class for all sprite types. """
