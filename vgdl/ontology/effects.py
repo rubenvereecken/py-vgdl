@@ -310,6 +310,16 @@ class KillIfAvatarWithoutResource(Effect):
             return
         game.sprite_registry.kill_sprite(this)
 
+class AvatarCollectResource(Effect):
+    """
+    Avatar collects the resource, no matter the interacting sprite.
+    Useful for projected interaction sprites.
+    """
+    def __call__(self, resource, that, game):
+        # `this` is not necessarily the avatar
+        avatar = game.sprite_registry.get_avatar()
+        collectResource(resource, avatar, game)
+
 class NullEffect(Effect):
     def __call__(self, this, that, game):
         pass

@@ -7,7 +7,7 @@ import numpy as np
 import pygame
 from pygame.math import Vector2
 
-from vgdl.core import VGDLSprite, Avatar, Action, Resource
+from vgdl.core import VGDLSprite, Avatar, Action, Resource, ACTION
 from vgdl.tools import unit_vector
 from vgdl.util import *
 from .constants import *
@@ -242,8 +242,12 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
         OrientedAvatar.__init__(self, **kwargs)
 
     def update(self, game):
+        # TODO a nice order of execution for hierarchies of classes,
+        # so much update return something when you want to stop execution
         OrientedAvatar.update(self, game)
-        if self._has_ammo():
+
+        action = self._read_action(game)
+        if self._has_ammo() and action == ACTION.SPACE:
             self._shoot(game)
 
     def _has_ammo(self):
@@ -258,63 +262,31 @@ class ShootAvatar(OrientedAvatar, SpriteProducer):
             self.resources[self.ammo] -= 1
 
     def _shoot(self, game):
-        from pygame.locals import K_SPACE
-        if self.stype and K_SPACE in game.active_keys:
-            u = unit_vector(self.orientation)
+        # TODO I can't for the life of me figure out why stype would be None
+        if self.stype is None:
+            return
 
-            sprite = game.create_sprite(self.stype, (self.lastrect.left + u[0] * self.lastrect.size[0],
-                                                       self.lastrect.top + u[1] * self.lastrect.size[1]))
+        # This one shoots only in a single direction, subclasses can change
+        directions = self._shoot_directions(game)
+        neighbors = [ neighbor_position(self.lastrect, dir) for dir in directions ]
+        sprites = [ game.create_sprite(self.stype, neighbor) for neighbor in neighbors ]
+
+        for direction, sprite in zip(directions, sprites):
             if sprite and isinstance(sprite, OrientedSprite):
-                sprite.orientation = unit_vector(self.orientation)
+                sprite.orientation = direction
 
-            self._spend_ammo()
+        self._spend_ammo()
 
-class ShootEverywhereAvatar(MovingAvatar, SpriteProducer):
+    def _shoot_directions(self, game) -> List[Vector2]:
+        u = unit_vector(self.orientation)
+        return [ u ]
+
+class ShootEverywhereAvatar(ShootAvatar):
     """
-    Does not have an orientation and simply shoots in all four directions.
+    Shoots in the four cardinal directions.
     """
-    ammo=None
-
-    @classmethod
-    def declare_possible_actions(cls):
-        from pygame.locals import K_SPACE
-        actions = super().declare_possible_actions()
-        actions["SPACE"] = Action(K_SPACE)
-        return actions
-
-    def __init__(self, stype, **kwargs):
-        self.stype = stype
-        MovingAvatar.__init__(self, **kwargs)
-
-    def update(self, game):
-        MovingAvatar.update(self, game)
-        if self._has_ammo():
-            self._shoot(game)
-
-    def _has_ammo(self):
-        if self.ammo is None:
-            return True
-        elif self.ammo in self.resources:
-            return self.resources[self.ammo] > 0
-        return False
-
-    def _spend_ammo(self):
-        if self.ammo is not None and self.ammo in self.resources:
-            self.resources[self.ammo] -= 1
-
-    def _shoot(self, game):
-        from pygame.locals import K_SPACE
-        if self.stype and K_SPACE in game.active_keys:
-            directions = BASEDIRS
-            neighbors = [ neighbor_position(self.lastrect, dir) for dir in directions ]
-            sprites = [ game.create_sprite(self.stype, neighbor) for neighbor in neighbors ]
-
-            for direction, sprite in zip(directions, sprites):
-                if sprite and isinstance(sprite, OrientedSprite):
-                    sprite.orientation = direction
-
-            self._spend_ammo()
-
+    def _shoot_directions(self, game):
+        return BASEDIRS
 
 class AimedAvatar(ShootAvatar):
     """ Can change the direction of firing, but not move. """
