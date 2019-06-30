@@ -29,7 +29,7 @@ def cloneSprite(sprite, partner, game):
 def transformTo(sprite, partner, game, stype='wall'):
     from vgdl.ontology.sprites import OrientedSprite
     game.destroy_sprite(sprite)
-    new_sprite = game.create_sprite(stype, sprite.rect.topleft, sprite.id)
+    new_sprite = game.create_sprite(stype, sprite.rect.topleft)
     assert new_sprite, 'This really was not supposed to happen, cannot recover'
     if isinstance(sprite, OrientedSprite) and isinstance(new_sprite, OrientedSprite):
         new_sprite.orientation = sprite.orientation
