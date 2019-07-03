@@ -758,8 +758,7 @@ class BasicGameLevel:
             if g2 == "EOS":
                 ss1 = ss[g1]
                 for s1 in ss1:
-                    game_rect = pygame.Rect((0, 0), self.screensize)
-                    if not game_rect.contains(s1.rect):
+                    if not self.contains_rect(s1.rect):
                         try:
                             self.add_score(effect.score)
                             effect(s1, None, self)
@@ -772,8 +771,7 @@ class BasicGameLevel:
             # special case for any tile, as long as it's in the game window still
             if g2 == "ANY":
                 for s1 in self.lastcollisions[g1]:
-                    game_rect = pygame.Rect((0, 0), self.screensize)
-                    if not game_rect.contains(s1.rect):
+                    if not self.contains_rect(s1.rect):
                         continue
                     try:
                         self.add_score(effect.score)
@@ -917,8 +915,20 @@ class BasicGameLevel:
             sprites = self.sprite_registry.sprites()
 
         for other in sprites:
-            if sprite.rect.topleft == topleft:
+            if other.rect.topleft == topleft:
                 yield other
+
+    def contains_rect(self, rect: pygame.Rect):
+        game_rect = pygame.Rect((0, 0), self.screensize)
+        return game_rect.contains(rect)
+
+    def contains_position(self, pos: Union[Tuple, Vector2]):
+        """
+        Checks if a standard rectangle at that position is in the game screen.
+        So rectangles half falling off the screen are considered not to be contained.
+        """
+        rect = pygame.Rect(pos, (self.block_size, self.block_size))
+        return self.contains_rect(rect)
 
 
 class VGDLSprite:
