@@ -713,11 +713,16 @@ class BasicGameLevel:
             return self.last_state
 
         state_dict = {
-            'score': self.score,
             'last_reward': self.last_reward,
+            'sprites': self.sprite_registry.get_state(),
+            # Should not be considered for Markov state equality, but can be used
+            # by a non-Markov StateObserver. Careful, that means S -> O is no
+            # longer a function mathematically, as S1 == S2, but both give
+            # rise to different O1, O2
+            'kill_list': self.kill_list,
             'time': self.time,
             'ended': self.ended,
-            'sprites': self.sprite_registry.get_state(),
+            'score': self.score,
         }
 
         state = GameState(self, state_dict)
@@ -929,6 +934,13 @@ class BasicGameLevel:
         """
         rect = pygame.Rect(pos, (self.block_size, self.block_size))
         return self.contains_rect(rect)
+
+    def is_freshly_killed(self, stype: str) -> bool:
+        """
+        Mind you, this is non-Markov and is not fully tested yet,
+        as it relies on `self.kill_list`.
+        """
+        return bool(set(self.kill_list).intersection(self.sprite_registry.with_stype(stype, include_dead=True)))
 
 
 class VGDLSprite:
