@@ -113,6 +113,10 @@ class SpriteRegistry:
 
     def revive_sprite(self, sprite):
         sprite.alive = True
+        if not sprite is self._sprite_by_id[sprite.id]:
+            logging.debug('Unknown sprite %s (id=%s)', sprite, id(sprite))
+        # if sprite not in self._dead_sprites_by_key[sprite.key]:
+        #     import ipdb; ipdb.set_trace()
         self._dead_sprites_by_key[sprite.key].remove(sprite)
         self._live_sprites_by_key[sprite.key].append(sprite)
 
@@ -236,6 +240,7 @@ class SpriteRegistry:
         assert set(self.sprite_keys).issuperset(state.keys()), \
             'Known sprite keys should match'
 
+        # Is assumed to not hold any Immutables
         other_ids = {sprite['id'] for sprites in state.values() for sprite in sprites}
         # Do not consider Immutables, and expect that they were not saved.
         known_ids = {id for id, sprite in self._sprite_by_id.items() \
@@ -243,33 +248,53 @@ class SpriteRegistry:
         deleted_ids = known_ids.difference(other_ids)
         added_ids = other_ids.difference(known_ids)
 
-        if len(deleted_ids) > 0:
-            for key in self.sprite_keys:
-                self._live_sprites_by_key[key] = [sprite for sprite in self._live_sprites_by_key[key] \
-                                                  if not sprite.id in deleted_ids]
-                self._dead_sprites_by_key[key] = [sprite for sprite in self._dead_sprites_by_key[key] \
-                                                  if not sprite.id in deleted_ids]
-            for deleted_id in deleted_ids:
-                self._sprite_by_id.pop(deleted_id)
+        for known_id in known_ids:
+            self.destroy_sprite(self._sprite_by_id[known_id])
 
-        if len(added_ids) > 0:
-            pass
+        for key, sprites in state.items():
+            for sprite_state in sprites:
+                self.reinstate_sprite(key, sprite_state)
 
-        for key, sprite_states in state.items():
-            for sprite_state in sprite_states:
-                id = sprite_state['id']
-                if id in self._sprite_by_id:
-                    sprite = self._sprite_by_id[id]
-                    known_alive = sprite.alive
-                    sprite.set_game_state(sprite_state['state'])
-                    if known_alive and not sprite.alive:
-                        self.kill_sprite(sprite)
-                    elif not known_alive and sprite.alive:
-                        self.revive_sprite(sprite)
-                else:
-                    # Including pos here because I don't like allowing position-less sprites
-                    sprite = self.create_sprite(key, id, pos=sprite_state['state']['rect'].topleft)
-                    sprite.set_game_state(sprite_state['state'])
+        # TODO reinstate smarter state keeping
+        # if len(deleted_ids) > 0:
+        #     for key in self.sprite_keys:
+        #         self._live_sprites_by_key[key] = [sprite for sprite in self._live_sprites_by_key[key] \
+        #                                           if not sprite.id in deleted_ids]
+        #         self._dead_sprites_by_key[key] = [sprite for sprite in self._dead_sprites_by_key[key] \
+        #                                           if not sprite.id in deleted_ids]
+        #     for deleted_id in deleted_ids:
+        #         self._sprite_by_id.pop(deleted_id)
+
+        # if len(added_ids) > 0:
+        #     pass
+
+        # for key, sprite_states in state.items():
+        #     for sprite_state in sprite_states:
+        #         id = sprite_state['id']
+        #         if id in self._sprite_by_id:
+        #             sprite = self._sprite_by_id[id]
+        #             known_alive = sprite.alive
+        #             if not known_alive and sprite not in self._dead_sprites_by_key[sprite.key]:
+        #                 import ipdb; ipdb.set_trace()
+        #             sprite.set_game_state(sprite_state['state'])
+        #             if known_alive and not sprite.alive:
+        #                 self.kill_sprite(sprite)
+        #             elif not known_alive and sprite.alive:
+        #                 self.revive_sprite(sprite)
+        #         else:
+        #             # Including pos here because I don't like allowing position-less sprites
+        #             sprite = self.create_sprite(key, id, pos=sprite_state['state']['rect'].topleft)
+        #             sprite.set_game_state(sprite_state['state'])
+
+    def reinstate_sprite(self, key, sprite_state: 'SpriteState'):
+        """
+        Reinserts a sprite that may come from a saved state.
+        """
+        sprite = self.create_sprite(key, sprite_state['id'],
+                                    pos=sprite_state['state']['rect'].topleft)
+        sprite.set_game_state(sprite_state['state'])
+        if not sprite.alive:
+            self.kill_sprite(sprite)
 
     def assert_sanity(self):
         live = set(s.id for ss in self._live_sprites_by_key.values() for s in ss)
