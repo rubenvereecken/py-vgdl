@@ -841,7 +841,7 @@ class BasicGameLevel:
         self.score += score
         self.last_reward += score
 
-    def get_possible_actions(self) -> Dict[Tuple[int], Action]:
+    def get_possible_actions(self, include_noop=True) -> Dict[Tuple[int], Action]:
         """
         Assume actions don't change
 
@@ -859,7 +859,7 @@ class BasicGameLevel:
         # Alternatively, use pygame names for keys instead of the key codes
         pygame_keys = {k: v for k, v in vars(pygame).items() if k.startswith('K_')}
         action_dict = avatar_cls.declare_possible_actions()
-        return {a.keys: a for a in action_dict.values()}
+        return {a.keys: a for a in action_dict.values() if not include_noop or a != ACTION.NOOP}
 
     def tick(self, action: Union[Action, int]):
         """
