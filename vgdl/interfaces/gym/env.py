@@ -69,13 +69,14 @@ class VGDLEnv(gym.Env):
             self.observer = AvatarOrientedObserver(self.game)
             self.observation_space = spaces.Box(low=0, high=100,
                     shape=self.observer.observation_shape)
-        elif isinstance(self._obs_type, type) and issubclass(self._obs_type, StateObserver):
-            self.observer = self._obs_type(self.game)
-            # TODO vgdl.StateObserver should report some space
-            self.observation_space = spaces.Box(low=0, high=100,
-                                        shape=self.observer.observation_shape)
+        # elif isinstance(self._obs_type, type) and issubclass(self._obs_type, StateObserver):
         else:
-            raise Exception('Unknown obs_type `{}`'.format(self._obs_type))
+            try:
+                self.observer = self._obs_type(self.game)
+                self.observation_space = spaces.Box(low=0, high=100,
+                                            shape=self.observer.observation_shape)
+            except:
+                raise Exception('Unknown obs_type `{}`'.format(self._obs_type))
 
         # For rendering purposes, will be initialised by first `render` call
         self.renderer = None
@@ -97,7 +98,10 @@ class VGDLEnv(gym.Env):
         if self._obs_type == 'image':
             return self.renderer.get_image()
         else:
-            return self.observer.get_observation().as_array()
+            observation = self.observer.get_observation()
+            if hasattr(observation, 'as_array'):
+                return observation.as_array()
+            return observation
 
     def step(self, a):
         # if not self.mode_initialised:
