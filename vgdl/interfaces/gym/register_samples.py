@@ -67,7 +67,6 @@ def register_sample_games():
                         # Use 24 (size of sprites) to render the full sprites
                         'block_size': 5 if obs_type == 'image' else 10
                     },
-                    timestep_limit=1000,
                     nondeterministic=True,
                 )
     except gym.error.Error as e:
