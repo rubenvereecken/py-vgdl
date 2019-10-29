@@ -29,7 +29,6 @@ def register_vgdl_env(domain_file, level_file, observer=None, blocksize=None):
             'block_size': blocksize,
             'obs_type': observer or 'features',
         },
-        timestep_limit=10000,
         nondeterministic=True
     )
 
