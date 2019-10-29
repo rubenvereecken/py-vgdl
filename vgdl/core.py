@@ -365,6 +365,9 @@ class GameState(UserDict):
     def ended(self):
         return self.data['ended']
 
+    def get_reward(self):
+        return self.data['last_reward']
+
     def freeze(self):
         # Return cached frozen game state, since game states don't change
         if self.frozen is not None:
@@ -388,6 +391,7 @@ class GameState(UserDict):
     def __eq__(self, other):
         """ Game state equality, should ignore time etc """
         # return self.freeze() == other.freeze()
+        if other is None: return False
         return self.hash() == other.hash()
 
     def __hash__(self):
@@ -857,9 +861,9 @@ class BasicGameLevel:
             raise Exception('No avatar class registered')
 
         # Alternatively, use pygame names for keys instead of the key codes
-        pygame_keys = {k: v for k, v in vars(pygame).items() if k.startswith('K_')}
+        # pygame_keys = {k: v for k, v in vars(pygame).items() if k.startswith('K_')}
         action_dict = avatar_cls.declare_possible_actions()
-        return {a.keys: a for a in action_dict.values() if not include_noop or a != ACTION.NOOP}
+        return {a.keys: a for a in action_dict.values() if include_noop or a != ACTION.NOOP}
 
     def tick(self, action: Union[Action, int]):
         """

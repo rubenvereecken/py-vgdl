@@ -41,7 +41,7 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
 
 class StateObserver:
     def __init__(self, game: BasicGame) -> None:
-        self.game = game
+        self.set_game(game)
 
 #     @property
 #     def game(self):
