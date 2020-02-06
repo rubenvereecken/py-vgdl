@@ -3,76 +3,162 @@ from itertools import product
 from scipy.misc import comb
 import numpy as np
 from collections import defaultdict, OrderedDict
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Any, Dict
 
-from vgdl.core import BasicGame, ACTION
+from vgdl.core import BasicGame, ACTION, GameState, Action
+from vgdl.state import Observation
 
+Statelike = Union[GameState, Observation]
 
-class StateActionGraph:
+class GraphBuilder:
     def __init__(self, game):
         self.game = game
-        self.graph = None # type: Dict[GameState, Dict[Action, GameState]]
-
-        actiondict = self.game.get_possible_actions() # type: Dict
+        actiondict = self.game.get_possible_actions(include_noop=False) # type: Dict
         self.actions = list(actiondict.values())
-        self.actions.remove(ACTION.NOOP)
 
-        # Assumes a single starting state
-        self.init_state = self.game.init_state
+    def grow_state_graph_bfs(self):
+        def _observe(state):
+            return state
+        return self.grow_graph_bfs(_observe)
 
-#     def __getstate__(self):
-#         return { k: v for k, v in self.__dict__.items() if k != 'game' }
+    def grow_observation_graph_bfs(self, observer):
+        """
+        Having a separate method for building observation graphs is useful
+        for when the game-state space is too large.
+        """
+        assert observer.game == self.game
+        def _observe(state):
+            # assert game.get_game_state() == state
+            obs = observer.get_observation()
+            return obs
+        return self.grow_graph_bfs(_observe)
 
-    def grow_graph_bfs(self):
+    def grow_graph_bfs(self, observe: Callable[[GameState], Any]):
         assert not self.game.is_stochastic, 'Deterministic only'
 
         self.game.reset()
         init_state = self.game.get_game_state()
-        visited = set([init_state])
-        fringe = [init_state]
-        # self.graph.add_node(state)
-        self.graph = OrderedDict()
+        init_obs = observe(init_state)
+        visited = set([init_obs])
+        state_fringe = [init_state]
+        obs_fringe = [init_obs]
 
-        while fringe:
-            current = fringe.pop(0)
-            visited.add(current)
+        graph = OrderedDict()
+        # Assumes r(s,a,s') is really just r(s')
+        reward_graph = {}
 
-            self.graph[current] = OrderedDict()
+        while obs_fringe:
+            current_state = state_fringe.pop(0)
+            current_obs = obs_fringe.pop(0)
+            visited.add(current_obs)
+            graph[current_obs] = OrderedDict()
 
-            if current.ended():
-                # for completeness, add self-edges for absorbing states
+            if current_state.ended():
+                # For completeness, add self-edges for absorbing states
+                # NOTE Careful, self edges mess up model-based solvers
                 for action in self.actions:
-                    self.graph[current][action] = current
-                    # self.graph.add_edge(current, current, action=action)
+                    # self.graph[current][action] = current
+                    graph[current_obs][action] = current_obs
                 continue
 
             for action in self.actions:
-                self.game.set_game_state(current)
+                self.game.set_game_state(current_state)
 
-                if self.game.get_game_state() != current:
-                    import ipdb; ipdb.set_trace()
-                    raise Exception
-
+                assert self.game.get_game_state() == current_state
+                #     import ipdb; ipdb.set_trace()
+                #     raise Exception
                 self.game.tick(action)
 
-                neighbor = self.game.get_game_state()
-                self.graph[current][action] = neighbor
-                # self.graph.add_edge(current, neighbor, action=action)
+                neighbor_state = self.game.get_game_state()
+                neighbor_obs = observe(neighbor_state)
+                reward = neighbor_state.get_reward()
 
-                if neighbor not in visited and neighbor not in fringe:
-                    fringe.append(neighbor)
+                # Expect deterministic MDPs for now
+                assert action not in graph[current_obs] or graph[current_obs][action] == neighbor_obs
+                graph[current_obs][action] = neighbor_obs
 
-        self.transitions = np.empty((self.num_states, self.num_actions), dtype=np.uint16)
-        assert self.num_states < 2**16, 'Thats not going to fit mate'
+                # Just validating the r(s,a,s')=r(s') assumption
+                assert neighbor_obs not in reward_graph or reward_graph[neighbor_obs] == reward
+                reward_graph[neighbor_obs] = reward
 
-        state_to_idx = { state: state_i for state_i, state in enumerate(self.states()) }
+                if neighbor_obs not in visited and neighbor_obs not in obs_fringe:
+                    obs_fringe.append(neighbor_obs)
+                    state_fringe.append(neighbor_state)
+
+        # if init_obs not in reward_graph:
+        #     reward_graph[init_obs] = 0
+
+        wrapped = DeterministicGraph(self.game, graph, reward_graph)
+        return wrapped
+
+class MDPGraph:
+    pass
+
+class DeterministicGraph(MDPGraph):
+    def __init__(self, game, graph: Dict[Statelike, Dict[Action, Statelike]],
+                 reward_graph: Dict[Statelike, float]):
+        self.game = game
+        self.graph = graph # type: Dict[Statelike Dict[Action, Statelike]]
+        self.reward_graph = reward_graph
+
+        actiondict = self.game.get_possible_actions(include_noop=False) # type: Dict
+        self.actions = list(actiondict.values())
+
+        # self.transitions = self._construct_transition_matrix(graph)
+
+    def _construct_transition_matrix(self, graph):
+        num_states = len(graph)
+        num_actions = len(self.actions)
+        transitions = np.empty((num_states, num_actions), dtype=np.uint16)
+        assert self.num_states < 2**16, "That's not going to fit mate"
+
+        state_to_idx = { state: state_i for state_i, state in enumerate(graph.keys()) }
         action_to_idx = { action: action_i for action_i, action in enumerate(self.actions) }
 
         for u, edges in self.graph.items():
             for a, v in edges.items():
-                self.transitions[state_to_idx[u], action_to_idx[a]] = state_to_idx[v]
+                # TODO broken right now, because v can be None
+                transitions[state_to_idx[u], action_to_idx[a]] = state_to_idx[v]
 
-        return self.graph
+        return transitions
+
+    def as_transition_matrix(self) -> 'np.ndarray[S,A,S]':
+        """ T holds probabilities for (s, a, s')"""
+        T = np.zeros((self.num_states, self.num_actions, self.num_states), dtype=np.float)
+
+        state_to_idx = { state: state_i for state_i, state in enumerate(self.graph.keys()) }
+        action_to_idx = { action: action_i for action_i, action in enumerate(self.actions) }
+
+        for u, edges in self.graph.items():
+            for a, v in edges.items():
+                if v is not None:
+                    T[state_to_idx[u], action_to_idx[a], state_to_idx[v]] = 1
+                # if v is None, just leave it all 0
+
+        return T
+
+    def as_deterministic_transition_matrix(self) -> 'np.ndarray[S,S]':
+        """ T holds resulting state index for (s, a) """
+        T = np.zeros((self.num_states, self.num_actions), dtype=int)
+
+        state_to_idx = { state: state_i for state_i, state in enumerate(self.graph.keys()) }
+        action_to_idx = { action: action_i for action_i, action in enumerate(self.actions) }
+
+        for u, edges in self.graph.items():
+            for a, v in edges.items():
+                if v is not None:
+                    T[state_to_idx[u], action_to_idx[a]] = state_to_idx[v]
+                # if v is None, just leave it all 0
+
+        return T
+
+    def state_to_idx(self) -> Dict[Statelike, int]:
+        state_to_idx = { state: state_i for state_i, state in enumerate(self.graph.keys()) }
+        return state_to_idx
+
+    def as_reward_vector(self) -> 'np.ndarray[S]':
+        rewards = np.fromiter((self.reward_graph[s] for s in self.states()), dtype=np.float)
+        return rewards
 
     def as_networkx_graph(self):
         import networkx as nx
@@ -92,7 +178,6 @@ class StateActionGraph:
         graph.add_edges_from(((u, self.transitions[u, a], { 'action': a }) \
                               for u, a in product(range(self.num_states), range(self.num_actions))))
         return graph
-
 
     def states(self):
         for state in self.graph.keys():
@@ -127,29 +212,3 @@ class StateActionGraph:
             predicates = [predicates]
 
         return all(all(p(s) for p in predicates) for s in self.graph.nodes)
-
-
-    def observations(self, observer_cls: type):
-        observer = observer_cls(self.game)
-
-        for state in self.states():
-            self.game.set_game_state(state)
-            observation = observer.get_observation()
-            yield observation
-
-
-    @classmethod
-    def construct(cls, game: BasicGame, actions=None):
-        graph = StateActionGraph(game)
-        if actions is not None:
-            graph.actions = actions
-        graph.grow_graph_bfs()
-        return graph
-
-
-# class GraphInspector:
-#     """
-#     Utilities for running tests on a state action graph
-#     """
-#     def __init__(g: StateActionGraph):
-
