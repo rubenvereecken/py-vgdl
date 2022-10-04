@@ -1,4 +1,4 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 from .env import VGDLEnv
 from .register_samples import register_sample_games
 
