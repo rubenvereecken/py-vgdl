@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import vgdl
 from vgdl.state import StateObserver
 import numpy as np

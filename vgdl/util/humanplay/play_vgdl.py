@@ -8,7 +8,7 @@ import numpy as np
 import argparse
 import logging
 
-import gym
+import gymnasium as gym
 
 import vgdl.interfaces.gym
 from .human import HumanVGDLController
@@ -16,7 +16,7 @@ from .human import HumanVGDLController
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def register_vgdl_env(domain_file, level_file, observer=None, blocksize=None):
-    from gym.envs.registration import register, registry
+    from gymnasium.envs.registration import register, registry
     level_name = '.'.join(os.path.basename(level_file).split('.')[:-1])
     env_name = 'vgdl_{}-v0'.format(level_name)
 

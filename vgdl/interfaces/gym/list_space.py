@@ -1,4 +1,4 @@
-from gym import Space
+from gymnasium import Space
 
 class list_space(Space):
     def __init__(self, basespace):
